@@ -237,6 +237,8 @@ private:
 
         cleanupSwapChain();
 
+        gfxapp->CreateSwapChain();
+
         //createSwapChain();
         //createImageViews();
         createFramebuffers();

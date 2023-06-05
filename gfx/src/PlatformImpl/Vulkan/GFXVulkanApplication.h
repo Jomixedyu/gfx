@@ -53,6 +53,7 @@ namespace gfx
         void InitPickPhysicalDevice();
         void InitLogicalDevice();
         void InitCommandPool();
+    public:
         void CreateSwapChain();
         void CreateRenderPass();
         void CreateCommandBuffer();
