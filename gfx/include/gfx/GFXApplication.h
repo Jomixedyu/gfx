@@ -2,6 +2,8 @@
 #include "GFXGlobalConfig.h"
 #include "GFXExtensions.h"
 #include "GFXBuffer.h"
+#include "GFXDescriptor.h"
+
 #include <functional>
 
 namespace gfx
@@ -31,7 +33,8 @@ namespace gfx
 		LoopEvent OnLoop = nullptr;
 		ExitWindowEvent OnExitWindow = nullptr;
 	public:
-		virtual GFXBuffer* CreateBuffer() = 0;
+		virtual GFXBuffer* CreateBuffer(GFXBufferUsage usage, size_t bufferSize) = 0;
+		
 		virtual intptr_t GetWindowHandle() = 0;
 	protected:
 		GFXApplication() {}

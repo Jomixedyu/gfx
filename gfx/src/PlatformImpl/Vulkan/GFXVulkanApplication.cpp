@@ -1,7 +1,4 @@
 #include "GFXVulkanApplication.h"
-#include "GFXVulkanApplication.h"
-#include "GFXVulkanApplication.h"
-#include "GFXVulkanApplication.h"
 #include <gfx/GFXThirdParty/glfw/include/GLFW/glfw3.h>
 #include <stdexcept>
 #include <iostream>
@@ -471,7 +468,7 @@ namespace gfx
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        if (vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) 
+        if (vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create render pass!");
         }
@@ -587,8 +584,8 @@ namespace gfx
         glfwTerminate();
     }
 
-    GFXBuffer* GFXVulkanApplication::CreateBuffer()
+    GFXBuffer* GFXVulkanApplication::CreateBuffer(GFXBufferUsage usage, size_t bufferSize)
     {
-        return new GFXVulkanBuffer(this);
+        return new GFXVulkanBuffer(this, usage, bufferSize);
     }
 }

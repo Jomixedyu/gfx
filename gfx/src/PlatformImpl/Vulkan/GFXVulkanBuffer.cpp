@@ -1,42 +1,35 @@
 #include "GFXVulkanBuffer.h"
+#include "GFXVulkanBuffer.h"
+#include "GFXVulkanBuffer.h"
 #include "GFXVulkanApplication.h"
 #include <cassert>
 #include <stdexcept>
 
 namespace gfx
 {
-    GFXVulkanBuffer::GFXVulkanBuffer(GFXVulkanApplication* app)
-        : m_app(app)
+    static uint32_t _FindMemoryType(GFXVulkanApplication* app, uint32_t typeFilter, VkMemoryPropertyFlags properties)
     {
-        
-    }
-
-    GFXVulkanBuffer::~GFXVulkanBuffer()
-    {
-        if (this->IsValid())
-        {
-            this->Release();
-        }
-    }
-
-    static uint32_t _FindMemoryType(GFXVulkanApplication* app, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
         VkPhysicalDeviceMemoryProperties memProperties;
         vkGetPhysicalDeviceMemoryProperties(app->GetVkPhysicalDevice(), &memProperties);
 
-        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+        {
+            if ((typeFilter & (1 << i)) &&
+                (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+            {
                 return i;
             }
         }
 
         throw std::runtime_error("failed to find suitable memory type!");
     }
+
     static void _CreateBuffer(
         GFXVulkanApplication* app,
         VkDeviceSize size,
-        VkBufferUsageFlags usage, 
+        VkBufferUsageFlags usage,
         VkMemoryPropertyFlags properties,
-        VkBuffer& buffer, 
+        VkBuffer& buffer,
         VkDeviceMemory& bufferMemory)
     {
         VkBufferCreateInfo bufferInfo{};
@@ -104,63 +97,70 @@ namespace gfx
 
         vkFreeCommandBuffers(app->GetVkDevice(), app->GetVkCommandPool(), 1, &commandBuffer);
     }
-    void GFXVulkanBuffer::Fill(GFXBufferUsage usage, const void* data, size_t size)
-    {
-        assert(data != nullptr);
-        assert(!m_hasData);
-        m_bufferSize = size;
 
-        VkBufferUsageFlags vkUsage;
-        switch (usage)
+    GFXVulkanBuffer::GFXVulkanBuffer(GFXVulkanApplication* app, GFXBufferUsage usage, size_t bufferSize)
+        : m_app(app), base(usage, bufferSize)
+    {
+        if (IsGpuLocalMemory())
         {
-        case gfx::GFXBufferUsage::Vertex:
-            vkUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-            break;
-        case gfx::GFXBufferUsage::Index:
-            vkUsage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-            break;
-        default:
-            assert(false);
-            break;
+            _CreateBuffer(m_app, m_bufferSize,
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT | GetVkUsage(),
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                m_vkBuffer, m_vkBufferMemory
+            );
+        }
+        else
+        {
+            _CreateBuffer(m_app, m_bufferSize,
+                GetVkUsage(),
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                m_vkBuffer, m_vkBufferMemory);
         }
 
+    }
 
-        //create staging buffer
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        _CreateBuffer(m_app, m_bufferSize,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            stagingBuffer, stagingBufferMemory
-        );
+    GFXVulkanBuffer::~GFXVulkanBuffer()
+    {
+        if (this->IsValid())
+        {
+            this->Release();
+        }
+    }
 
-        void* memData;
-        vkMapMemory(m_app->GetVkDevice(), stagingBufferMemory, 0, m_bufferSize, 0, &memData);
-        memcpy(memData, data, m_bufferSize);
-        vkUnmapMemory(m_app->GetVkDevice(), stagingBufferMemory);
 
-        _CreateBuffer(m_app, m_bufferSize,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-            vkUsage,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            m_vkBuffer, m_vkBufferMemory
-        );
 
-        _CopyBuffer(m_app, stagingBuffer, m_vkBuffer, m_bufferSize);
-        vkDestroyBuffer(m_app->GetVkDevice(), stagingBuffer, nullptr);
-        vkFreeMemory(m_app->GetVkDevice(), stagingBufferMemory, nullptr);
+    void GFXVulkanBuffer::Fill(const void* data)
+    {
+        if (IsGpuLocalMemory())
+        {
+            //create staging buffer
+            VkBuffer stagingBuffer;
+            VkDeviceMemory stagingBufferMemory;
+            _CreateBuffer(m_app, m_bufferSize,
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                stagingBuffer, stagingBufferMemory
+            );
 
-        //_CreateBuffer(m_app, size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        //    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-        //    m_vkBuffer, m_vkBufferMemory);
+            void* memData;
+            vkMapMemory(m_app->GetVkDevice(), stagingBufferMemory, 0, m_bufferSize, 0, &memData);
+            memcpy(memData, data, m_bufferSize);
+            vkUnmapMemory(m_app->GetVkDevice(), stagingBufferMemory);
 
-        //void* gpuData;
-        //vkMapMemory(m_app->GetVkDevice(), m_vkBufferMemory, 0, m_bufferSize, 0, &gpuData);
-        //memcpy(gpuData, data, m_bufferSize);
-        //vkUnmapMemory(m_app->GetVkDevice(), m_vkBufferMemory);
+            //transfer
+            _CopyBuffer(m_app, stagingBuffer, m_vkBuffer, m_bufferSize);
+            vkDestroyBuffer(m_app->GetVkDevice(), stagingBuffer, nullptr);
+            vkFreeMemory(m_app->GetVkDevice(), stagingBufferMemory, nullptr);
+        }
+        else
+        {
+            void* gpuData;
+            vkMapMemory(m_app->GetVkDevice(), m_vkBufferMemory, 0, m_bufferSize, 0, &gpuData);
+            memcpy(gpuData, data, m_bufferSize);
+            vkUnmapMemory(m_app->GetVkDevice(), m_vkBufferMemory);
+        }
 
-        m_hasData = true;
     }
 
     void GFXVulkanBuffer::Release()
@@ -172,7 +172,33 @@ namespace gfx
             m_hasData = false;
         }
     }
-    
+
+    VkBufferUsageFlags GFXVulkanBuffer::GetVkUsage() const
+    {
+        VkBufferUsageFlags vkUsage;
+        switch (m_usage)
+        {
+        case gfx::GFXBufferUsage::Vertex:
+            vkUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+            break;
+        case gfx::GFXBufferUsage::Index:
+            vkUsage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+            break;
+        case GFXBufferUsage::ConstantBuffer:
+            vkUsage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+            break;
+        default:
+            assert(false);
+            break;
+        }
+        return vkUsage;
+    }
+
+    bool GFXVulkanBuffer::IsGpuLocalMemory() const
+    {
+        return m_usage != GFXBufferUsage::ConstantBuffer;
+    }
+
     bool GFXVulkanBuffer::IsValid() const
     {
         return m_hasData;

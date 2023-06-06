@@ -1,3 +1,4 @@
+#pragma once
 #include <gfx/GFXBuffer.h>
 #include <vulkan/vulkan.h>
 
@@ -7,13 +8,16 @@ namespace gfx
 
     class GFXVulkanBuffer : public GFXBuffer
     {
+        using base = GFXBuffer;
     public:
-        GFXVulkanBuffer(GFXVulkanApplication* app);
+        GFXVulkanBuffer(GFXVulkanApplication* app, GFXBufferUsage usage, size_t bufferSize);
         virtual ~GFXVulkanBuffer() override;
     public:
-        virtual void Fill(GFXBufferUsage usage, const void* data, size_t size) override;
+        virtual void Fill(const void* data) override;
         virtual void Release() override;
         const VkBuffer& GetVkBuffer() const { return m_vkBuffer; }
+        VkBufferUsageFlags GetVkUsage() const;
+        bool IsGpuLocalMemory() const;
         GFXVulkanApplication* GetApplication() const { return m_app; }
     public:
         /* GFXBuffer */
@@ -22,10 +26,9 @@ namespace gfx
     public:
 
     protected:
-        size_t m_bufferSize = 0;
-        bool m_hasData = false;
-        VkBuffer m_vkBuffer;
-        VkDeviceMemory m_vkBufferMemory;
-        GFXVulkanApplication* m_app;
+        bool m_hasData = true;
+        VkBuffer m_vkBuffer{};
+        VkDeviceMemory m_vkBufferMemory{};
+        GFXVulkanApplication* m_app = nullptr;
     };
 }

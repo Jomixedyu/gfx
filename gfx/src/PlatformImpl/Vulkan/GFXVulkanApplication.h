@@ -27,7 +27,7 @@ namespace gfx
         virtual void RequestStop() override;
         virtual void Terminate() override;
 
-        virtual GFXBuffer* CreateBuffer() override;
+        virtual GFXBuffer* CreateBuffer(GFXBufferUsage usage, size_t bufferSize) override;
         virtual GFXExtensions GetExtensionNames() override;
         virtual intptr_t GetWindowHandle() override;
     public:

@@ -4,7 +4,8 @@
 namespace gfx
 {
 
-    GFXBuffer::GFXBuffer()
+    GFXBuffer::GFXBuffer(GFXBufferUsage usage, size_t bufferSize) :
+        m_usage(usage), m_bufferSize(bufferSize)
     {
 
     }
