@@ -112,7 +112,7 @@ namespace gfx::vk
             SwapChainSupportDetails swapChainSupport = _QuerySwapChainSupport(surface, device);
             swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
-
+        
         return indices.isComplete() && extensionsSupported && swapChainAdequate;
     }
 

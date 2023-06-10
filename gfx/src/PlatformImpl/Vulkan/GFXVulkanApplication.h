@@ -28,6 +28,7 @@ namespace gfx
         virtual void Terminate() override;
 
         virtual GFXBuffer* CreateBuffer(GFXBufferUsage usage, size_t bufferSize) override;
+        virtual std::shared_ptr<GFXCommandBuffer> CreateCommandBuffer() override;
         virtual GFXExtensions GetExtensionNames() override;
         virtual intptr_t GetWindowHandle() override;
     public:
@@ -56,7 +57,7 @@ namespace gfx
     public:
         void CreateSwapChain();
         void CreateRenderPass();
-        void CreateCommandBuffer();
+        void CreateCommandBuffers();
     protected:
         
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;

@@ -4,106 +4,17 @@
 #include "GFXVulkanApplication.h"
 #include <cassert>
 #include <stdexcept>
+#include "BufferHelper.h"
 
 namespace gfx
 {
-    static uint32_t _FindMemoryType(GFXVulkanApplication* app, uint32_t typeFilter, VkMemoryPropertyFlags properties)
-    {
-        VkPhysicalDeviceMemoryProperties memProperties;
-        vkGetPhysicalDeviceMemoryProperties(app->GetVkPhysicalDevice(), &memProperties);
-
-        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
-        {
-            if ((typeFilter & (1 << i)) &&
-                (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
-            {
-                return i;
-            }
-        }
-
-        throw std::runtime_error("failed to find suitable memory type!");
-    }
-
-    static void _CreateBuffer(
-        GFXVulkanApplication* app,
-        VkDeviceSize size,
-        VkBufferUsageFlags usage,
-        VkMemoryPropertyFlags properties,
-        VkBuffer& buffer,
-        VkDeviceMemory& bufferMemory)
-    {
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = size;
-        bufferInfo.usage = usage;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        if (vkCreateBuffer(app->GetVkDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create buffer!");
-        }
-
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(app->GetVkDevice(), buffer, &memRequirements);
-
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = _FindMemoryType(app, memRequirements.memoryTypeBits, properties);
-
-        if (vkAllocateMemory(app->GetVkDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to allocate buffer memory!");
-        }
-
-        vkBindBufferMemory(app->GetVkDevice(), buffer, bufferMemory, 0);
-    }
-    static void _CopyBuffer(GFXVulkanApplication* app, VkBuffer src, VkBuffer dest, VkDeviceSize size)
-    {
-        VkCommandBuffer commandBuffer;
-        {
-            VkCommandBufferAllocateInfo allocInfo{};
-            allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-            allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            allocInfo.commandPool = app->GetVkCommandPool();
-            allocInfo.commandBufferCount = 1;
-            vkAllocateCommandBuffers(app->GetVkDevice(), &allocInfo, &commandBuffer);
-        }
-
-        VkCommandBufferBeginInfo beginInfo{};
-        {
-            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        }
-        vkBeginCommandBuffer(commandBuffer, &beginInfo);
-        {
-            VkBufferCopy copyRegion{};
-            copyRegion.srcOffset = 0;
-            copyRegion.dstOffset = 0;
-            copyRegion.size = size;
-            vkCmdCopyBuffer(commandBuffer, src, dest, 1, &copyRegion);
-        }
-        vkEndCommandBuffer(commandBuffer);
-
-        VkSubmitInfo submitInfo{};
-        {
-            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            submitInfo.commandBufferCount = 1;
-            submitInfo.pCommandBuffers = &commandBuffer;
-        }
-
-        vkQueueSubmit(app->GetVkGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(app->GetVkGraphicsQueue());
-
-        vkFreeCommandBuffers(app->GetVkDevice(), app->GetVkCommandPool(), 1, &commandBuffer);
-    }
 
     GFXVulkanBuffer::GFXVulkanBuffer(GFXVulkanApplication* app, GFXBufferUsage usage, size_t bufferSize)
         : m_app(app), base(usage, bufferSize)
     {
         if (IsGpuLocalMemory())
         {
-            _CreateBuffer(m_app, m_bufferSize,
+            BufferHelper::CreateBuffer(m_app, m_bufferSize,
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | GetVkUsage(),
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 m_vkBuffer, m_vkBufferMemory
@@ -111,7 +22,7 @@ namespace gfx
         }
         else
         {
-            _CreateBuffer(m_app, m_bufferSize,
+            BufferHelper::CreateBuffer(m_app, m_bufferSize,
                 GetVkUsage(),
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 m_vkBuffer, m_vkBufferMemory);
@@ -136,7 +47,7 @@ namespace gfx
             //create staging buffer
             VkBuffer stagingBuffer;
             VkDeviceMemory stagingBufferMemory;
-            _CreateBuffer(m_app, m_bufferSize,
+            BufferHelper::CreateBuffer(m_app, m_bufferSize,
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -149,9 +60,8 @@ namespace gfx
             vkUnmapMemory(m_app->GetVkDevice(), stagingBufferMemory);
 
             //transfer
-            _CopyBuffer(m_app, stagingBuffer, m_vkBuffer, m_bufferSize);
-            vkDestroyBuffer(m_app->GetVkDevice(), stagingBuffer, nullptr);
-            vkFreeMemory(m_app->GetVkDevice(), stagingBufferMemory, nullptr);
+            BufferHelper::TransferBuffer(m_app, stagingBuffer, m_vkBuffer, m_bufferSize);
+            BufferHelper::DestroyBuffer(m_app, stagingBuffer, stagingBufferMemory);
         }
         else
         {
@@ -167,8 +77,7 @@ namespace gfx
     {
         if (m_hasData)
         {
-            vkDestroyBuffer(m_app->GetVkDevice(), m_vkBuffer, nullptr);
-            vkFreeMemory(m_app->GetVkDevice(), m_vkBufferMemory, nullptr);
+            BufferHelper::DestroyBuffer(m_app, m_vkBuffer, m_vkBufferMemory);
             m_hasData = false;
         }
     }

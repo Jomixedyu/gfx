@@ -3,11 +3,12 @@
 #include <stdexcept>
 #include <iostream>
 #include "PhysicalDeviceHelper.h"
-
+#include "GFXVulkanCommandBuffer.h"
 #include "GFXVulkanBuffer.h"
 #include <set>
 #include <cmath>
 #include <algorithm>
+#include <stdlib.h>
 
 #undef max
 
@@ -89,12 +90,57 @@ namespace gfx
 
         return true;
     }
+
+    enum class ConsoleColor
+    {
+        black = 0,
+        dark_blue = 1,
+        dark_green = 2,
+        dark_aqua, dark_cyan = 3,
+        dark_red = 4,
+        dark_purple = 5, dark_pink = 5, dark_magenta = 5,
+        dark_yellow = 6,
+        dark_white = 7,
+        gray = 8,
+        blue = 9,
+        green = 10,
+        aqua = 11, cyan = 11,
+        red = 12,
+        purple = 13, pink = 13, magenta = 13,
+        yellow = 14,
+        white = 15
+    };
+    static void _SetColor(ConsoleColor foreground, ConsoleColor background)
+    {
+        WORD consoleColor;
+        HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+
+        if (GetConsoleScreenBufferInfo(hStdOut, &csbi))
+        {
+            consoleColor = ((int)foreground + ((int)background * 16));
+            SetConsoleTextAttribute(hStdOut, consoleColor);
+        }
+    }
     static VKAPI_ATTR VkBool32 VKAPI_CALL _VkDebugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData)
     {
+        if (messageSeverity & VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+        {
+            _SetColor(ConsoleColor::red, ConsoleColor::black);
+        }
+        else if (messageSeverity & VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+        {
+            _SetColor(ConsoleColor::yellow, ConsoleColor::black);
+        }
+        else
+        {
+            _SetColor(ConsoleColor::white, ConsoleColor::black);
+        }
+
         std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
         return VK_FALSE;
@@ -215,6 +261,7 @@ namespace gfx
         }
 
         VkPhysicalDeviceFeatures deviceFeatures{};
+        deviceFeatures.samplerAnisotropy = VK_TRUE;
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -474,7 +521,7 @@ namespace gfx
         }
     }
 
-    void GFXVulkanApplication::CreateCommandBuffer()
+    void GFXVulkanApplication::CreateCommandBuffers()
     {
         m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -523,7 +570,7 @@ namespace gfx
         this->InitCommandPool();
         this->CreateSwapChain();
         this->CreateRenderPass();
-        this->CreateCommandBuffer();
+        this->CreateCommandBuffers();
     }
 
     void GFXVulkanApplication::ExecLoop()
@@ -587,5 +634,9 @@ namespace gfx
     GFXBuffer* GFXVulkanApplication::CreateBuffer(GFXBufferUsage usage, size_t bufferSize)
     {
         return new GFXVulkanBuffer(this, usage, bufferSize);
+    }
+    std::shared_ptr<GFXCommandBuffer> gfx::GFXVulkanApplication::CreateCommandBuffer()
+    {
+        return std::shared_ptr<GFXCommandBuffer>(new GFXVulkanCommandBuffer(this));
     }
 }

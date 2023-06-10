@@ -1,8 +1,15 @@
-#include "Common.hlsl"
+#include "Common.inc.hlsl"
 
-PixelOutAssembly main(PixelInAssembly v2f)
+[[vk::combinedImageSampler]][[vk::binding(1)]]
+Texture2D texture1;
+[[vk::combinedImageSampler]][[vk::binding(1)]]
+SamplerState state;
+
+OutPixelAssembly main(InPixelAssembly v2f)
 {
-    PixelOutAssembly f2p;
-    f2p.Color = v2f.Color *0.05;
-    return f2p;
+    OutPixelAssembly p2o;
+    p2o.Color = texture1.Sample(state, v2f.TexCoord0);
+    //p2o.Color = tex2D(inTex, v2f.TexCoord0);
+    //f2p.Color = float4(v2f.TexCoord0, 0, 1);
+    return p2o;
 }

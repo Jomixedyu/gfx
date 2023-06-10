@@ -13,7 +13,7 @@ aux_source_directory(./ DIR_SRCS)
 
 file(GLOB_RECURSE ImGuiDIR_SRCS "imgui/*.h" "imgui/*.h")
 
-add_executable (${PROJECT_NAME} ${DIR_SRCS} ${ImGuiDIR_SRCS})
+add_executable (${PROJECT_NAME} ${DIR_SRCS} ${ImGuiDIR_SRCS} "stb_image.h")
 
 target_include_directories(${PROJECT_NAME} PUBLIC gfx)
 target_link_libraries(${PROJECT_NAME} gfx)
