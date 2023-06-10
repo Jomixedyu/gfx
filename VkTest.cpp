@@ -27,8 +27,11 @@
 #include <optional>
 #include <set>
 #include <array>
+#define GLM_CLIP_CONTROL_LH_BIT 1
+#define GLM_CONFIG_CLIP_CONTROL 1
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
 #include <GFXVulkanCommandBuffer.h>
 #include <gfx/GFXApplication.h>
 #include <GFXVulkanApplication.h>
@@ -157,10 +160,15 @@ public:
     };
     const std::vector<gfx::VertexData> vertices =
     {
-        {{-0.5f, -0.5f, 0.f}, {0.f,0.f,0.f}, {0.f,0.f,0.f}, {1.0f, 0.0f, 0.0f, 1.f}, {{0.f, 0.f}}},
-        {{0.5f, -0.5f, 0.f}, {0.f,0.f,0.f}, {0.f,0.f,0.f}, {0.0f, 1.0f, 0.0f, 1.f}, { {1.f, 0.f} }},
-        {{0.5f, 0.5f, 0.f}, {0.f,0.f,0.f}, {0.f,0.f,0.f}, {0.0f, 0.0f, 1.0f, 1.f}, { {1.f, 1.f} }},
-        {{-0.5f, 0.5f, 0.f}, {0.f,0.f,0.f}, {0.f,0.f,0.f}, {1.0f, 1.0f, 1.0f, 1.f}, { {0.f, 1.f} }},
+        {{-0.5f, -0.f, -0.5f}, {0.f,1.f,0.f}, {0.f,0.f,0.f}, {1.0f, 0.0f, 0.0f, 1.f}, {{0.f, 1.f}}},
+        {{0.5f, 0.f, -0.5f}, {0.f,1.f,0.f}, {0.f,0.f,0.f}, {0.0f, 1.0f, 0.0f, 1.f}, { {1.f, 1.f} }},
+        {{0.5f, 0.f, 0.5f}, {0.f,1.f,0.f}, {0.f,0.f,0.f}, {0.0f, 0.0f, 1.0f, 1.f}, { {1.f, 0.f} }},
+        {{-0.5f, 0.f, 0.5f}, {0.f,1.f,0.f}, {0.f,0.f,0.f}, {1.0f, 1.0f, 1.0f, 1.f}, { {0.f, 0.f} }},
+
+        //{{-0.5f, -0.5f, 0.f}, {0.f,0.f,0.f}, {0.f,0.f,0.f}, {1.0f, 0.0f, 0.0f, 1.f}, {{0.f, 0.f}}},
+        //{{0.5f, -0.5f, 0.f}, {0.f,0.f,0.f}, {0.f,0.f,0.f}, {0.0f, 1.0f, 0.0f, 1.f}, { {1.f, 0.f} }},
+        //{{0.5f, 0.5f, 0.f}, {0.f,0.f,0.f}, {0.f,0.f,0.f}, {0.0f, 0.0f, 1.0f, 1.f}, { {1.f, 1.f} }},
+        //{{-0.5f, 0.5f, 0.f}, {0.f,0.f,0.f}, {0.f,0.f,0.f}, {1.0f, 1.0f, 1.0f, 1.f}, { {0.f, 1.f} }},
     };
     //const std::vector<Vertex> vertices = {
     //    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
@@ -755,7 +763,9 @@ private:
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        //rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        //rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
 
         VkPipelineMultisampleStateCreateInfo multisampling{};
@@ -876,10 +886,10 @@ private:
             viewport.height = -(float)gfxapp->GetVkSwapChainExtent().height;
             //viewport.x = 0.0f;
             //viewport.y = 0.0f;
-            //viewport.width = (float)swapChainExtent.width;
-            //viewport.height = (float)swapChainExtent.height;
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
+            //viewport.width = (float)gfxapp->GetVkSwapChainExtent().width;
+            //viewport.height = (float)gfxapp->GetVkSwapChainExtent().height;
+            //viewport.minDepth = 0.0f;
+            //viewport.maxDepth = 1.0f;
             vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
             VkRect2D scissor{};
@@ -940,10 +950,11 @@ private:
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         UniformBufferObject ubo{};
-        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.proj = glm::perspective(glm::radians(45.0f), gfxapp->GetVkSwapChainExtent().width / (float)gfxapp->GetVkSwapChainExtent().height, 0.1f, 10.0f);
-
+        //ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.f));
+        ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.2f, 0.f));
+        ubo.view = glm::lookAtLH(glm::vec3(0.0f, 2.0f, -2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        ubo.proj = glm::perspectiveLH_ZO(glm::radians(45.0f), gfxapp->GetVkSwapChainExtent().width / (float)gfxapp->GetVkSwapChainExtent().height, 0.1f, 10.0f);
+        //glm::perspective;
         uniformBuffers[currentImage]->Fill(&ubo);
     }
 
