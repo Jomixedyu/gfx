@@ -36,6 +36,7 @@
 #include <gfx/GFXApplication.h>
 #include <GFXVulkanApplication.h>
 #include <GFXVulkanBuffer.h>
+#include <GFXVulkanVertexLayoutDescription .h>
 #include <chrono>
 #include <BufferHelper.h>
 const uint32_t WIDTH = 800;
@@ -70,64 +71,23 @@ namespace gfx
         glm::vec2 Coords[MAX_COORD_NUM];
     };
 
-    static VkVertexInputBindingDescription GetBindingDescription()
+    static auto GetBindingDescription(gfx::GFXVulkanApplication* app)
     {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(VertexData);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-        return bindingDescription;
-    }
+        auto vertDescription = app->CreateVertexLayoutDescription();
+        vertDescription->BindingPoint = 0;
+        vertDescription->Stride = sizeof(VertexData);
 
-    static std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions()
-    {
-        std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-        int location = 0;
-        {
-            VkVertexInputAttributeDescription description;
-            description.binding = 0;
-            description.location = location++;
-            description.format = VK_FORMAT_R32G32B32_SFLOAT;
-            description.offset = offsetof(VertexData, Position);
-            attributeDescriptions.push_back(description);
-        }
-        {
-            VkVertexInputAttributeDescription description;
-            description.binding = 0;
-            description.location = location++;
-            description.format = VK_FORMAT_R32G32B32_SFLOAT;
-            description.offset = offsetof(VertexData, Normal);
-            attributeDescriptions.push_back(description);
-        }
-        {
-            VkVertexInputAttributeDescription description;
-            description.binding = 0;
-            description.location = location++;
-            description.format = VK_FORMAT_R32G32B32_SFLOAT;
-            description.offset = offsetof(VertexData, Tangent);
-            attributeDescriptions.push_back(description);
-        }
-        {
-            VkVertexInputAttributeDescription description;
-            description.binding = 0;
-            description.location = location++;
-            description.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-            description.offset = offsetof(VertexData, VertColor);
-            attributeDescriptions.push_back(description);
-        }
-
+        vertDescription->Attributes.push_back({ gfx::GFXDataFormat::R32G32B32_SFloat, offsetof(VertexData, Position) });
+        vertDescription->Attributes.push_back({ gfx::GFXDataFormat::R32G32B32_SFloat, offsetof(VertexData, Normal) });
+        vertDescription->Attributes.push_back({ gfx::GFXDataFormat::R32G32B32_SFloat, offsetof(VertexData, Tangent) });
+        vertDescription->Attributes.push_back({ gfx::GFXDataFormat::R32G32B32A32_SFloat, offsetof(VertexData, VertColor) });
         for (size_t i = 0; i < VertexData::MAX_COORD_NUM; i++)
         {
-            VkVertexInputAttributeDescription description;
-            description.binding = 0;
-            description.location = location++;
-            description.format = VK_FORMAT_R32G32_SFLOAT;
-            description.offset = offsetof(VertexData, Coords[i]);
-            attributeDescriptions.push_back(description);
+            vertDescription->Attributes.push_back({ gfx::GFXDataFormat::R32G32_SFloat, offsetof(VertexData, Coords[i]) });
         }
-
-        return attributeDescriptions;
+        return vertDescription;
     }
+
 }
 
 void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
@@ -803,8 +763,10 @@ private:
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-        auto bindingDescription = gfx::GetBindingDescription();
-        auto attributeDescriptions = gfx::GetAttributeDescriptions();
+        auto vertBinding = std::static_pointer_cast<gfx::GFXVulkanVertexLayoutDescription>(gfx::GetBindingDescription(gfxapp));
+
+        auto bindingDescription = vertBinding->GetVkBindingDescription();
+        auto attributeDescriptions = vertBinding->GetVkAttributeDescriptions();
 
         vertexInputInfo.vertexBindingDescriptionCount = 1;
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());

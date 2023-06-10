@@ -6,6 +6,7 @@
 #include "GFXCommandBuffer.h"
 #include <functional>
 #include <memory>
+#include "GFXVertexLayoutDescription.h"
 
 namespace gfx
 {
@@ -36,7 +37,7 @@ namespace gfx
     public:
         virtual GFXBuffer* CreateBuffer(GFXBufferUsage usage, size_t bufferSize) = 0;
         virtual std::shared_ptr<GFXCommandBuffer> CreateCommandBuffer() = 0;
-
+        virtual std::shared_ptr<GFXVertexLayoutDescription> CreateVertexLayoutDescription() = 0;
         virtual intptr_t GetWindowHandle() = 0;
     protected:
         GFXApplication() {}

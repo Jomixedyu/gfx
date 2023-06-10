@@ -1,8 +1,7 @@
 #pragma once
 #include <gfx/GFXApplication.h>
 
-#define VK_USE_PLATFORM_WIN32_KHR
-#include <vulkan/vulkan.h>
+#include "VulkanInclude.h"
 
 #define GLFW_INCLUDE_VULKAN
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -29,6 +28,7 @@ namespace gfx
 
         virtual GFXBuffer* CreateBuffer(GFXBufferUsage usage, size_t bufferSize) override;
         virtual std::shared_ptr<GFXCommandBuffer> CreateCommandBuffer() override;
+        virtual std::shared_ptr<GFXVertexLayoutDescription> CreateVertexLayoutDescription() override;
         virtual GFXExtensions GetExtensionNames() override;
         virtual intptr_t GetWindowHandle() override;
     public:

@@ -1,10 +1,12 @@
 #include "GFXVulkanApplication.h"
+#include "GFXVulkanApplication.h"
 #include <gfx/GFXThirdParty/glfw/include/GLFW/glfw3.h>
 #include <stdexcept>
 #include <iostream>
 #include "PhysicalDeviceHelper.h"
 #include "GFXVulkanCommandBuffer.h"
 #include "GFXVulkanBuffer.h"
+#include "GFXVulkanVertexLayoutDescription .h"
 #include <set>
 #include <cmath>
 #include <algorithm>
@@ -683,5 +685,9 @@ namespace gfx
     std::shared_ptr<GFXCommandBuffer> gfx::GFXVulkanApplication::CreateCommandBuffer()
     {
         return std::shared_ptr<GFXCommandBuffer>(new GFXVulkanCommandBuffer(this));
+    }
+    std::shared_ptr<GFXVertexLayoutDescription> gfx::GFXVulkanApplication::CreateVertexLayoutDescription()
+    {
+        return std::shared_ptr<GFXVertexLayoutDescription>(new GFXVulkanVertexLayoutDescription());
     }
 }
