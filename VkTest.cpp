@@ -703,6 +703,10 @@ private:
         }
 
         vkDestroySwapchainKHR(gfxapp->GetVkDevice(), gfxapp->GetVkSwapchain(), nullptr);
+
+        vkDestroyImageView(gfxapp->GetVkDevice(), depthImageView, nullptr);
+        vkDestroyImage(gfxapp->GetVkDevice(), depthImage, nullptr);
+        vkFreeMemory(gfxapp->GetVkDevice(), depthImageMemory, nullptr);
     }
 
     void recreateSwapChain() {
@@ -719,7 +723,7 @@ private:
         cleanupSwapChain();
 
         gfxapp->CreateSwapChain();
-
+        createDepthResources();
         //createSwapChain();
         //createImageViews();
         createFramebuffers();
@@ -746,6 +750,9 @@ private:
         {
             uniformBuffer->Release();
         }
+
+
+
 
         vkDestroySampler(gfxapp->GetVkDevice(), textureSampler, nullptr);
         vkDestroyImageView(gfxapp->GetVkDevice(), textureImageView, nullptr);
@@ -1028,7 +1035,7 @@ private:
 
         UniformBufferObject ubo{};
         //ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.f));
-        ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.2f, 0.f));
+        ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.f, 0.f));
         ubo.view = glm::lookAtLH(glm::vec3(0.0f, 2.0f, -2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         ubo.proj = glm::perspectiveLH_ZO(glm::radians(45.0f), gfxapp->GetVkSwapChainExtent().width / (float)gfxapp->GetVkSwapChainExtent().height, 0.1f, 10.0f);
 
