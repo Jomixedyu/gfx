@@ -3,11 +3,7 @@
 
 namespace gfx
 {
-    struct GFXTextureFormatInfo
-    {
-        int Component;
-        bool IsSRGB;
-    };
+
     enum class GFXTextureFormat
     {
         R8,

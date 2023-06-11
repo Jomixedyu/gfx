@@ -4,16 +4,16 @@
 
 namespace gfx
 {
-    enum class GFXDataFormat
+    enum class GFXVertexInputDataFormat
     {
+        R32G32_SFloat,
         R32G32B32_SFloat,
         R32G32B32A32_SFloat,
-        R32G32_SFloat,
     };
 
     struct GFXVertexInputAttribute
     {
-        GFXDataFormat Format;
+        GFXVertexInputDataFormat Format;
         size_t Offset;
     };
 

@@ -79,13 +79,13 @@ namespace gfx
         vertDescription->BindingPoint = 0;
         vertDescription->Stride = sizeof(VertexData);
 
-        vertDescription->Attributes.push_back({ gfx::GFXDataFormat::R32G32B32_SFloat, offsetof(VertexData, Position) });
-        vertDescription->Attributes.push_back({ gfx::GFXDataFormat::R32G32B32_SFloat, offsetof(VertexData, Normal) });
-        vertDescription->Attributes.push_back({ gfx::GFXDataFormat::R32G32B32_SFloat, offsetof(VertexData, Tangent) });
-        vertDescription->Attributes.push_back({ gfx::GFXDataFormat::R32G32B32A32_SFloat, offsetof(VertexData, VertColor) });
+        vertDescription->Attributes.push_back({ gfx::GFXVertexInputDataFormat::R32G32B32_SFloat, offsetof(VertexData, Position) });
+        vertDescription->Attributes.push_back({ gfx::GFXVertexInputDataFormat::R32G32B32_SFloat, offsetof(VertexData, Normal) });
+        vertDescription->Attributes.push_back({ gfx::GFXVertexInputDataFormat::R32G32B32_SFloat, offsetof(VertexData, Tangent) });
+        vertDescription->Attributes.push_back({ gfx::GFXVertexInputDataFormat::R32G32B32A32_SFloat, offsetof(VertexData, VertColor) });
         for (size_t i = 0; i < VertexData::MAX_COORD_NUM; i++)
         {
-            vertDescription->Attributes.push_back({ gfx::GFXDataFormat::R32G32_SFloat, offsetof(VertexData, Coords[i]) });
+            vertDescription->Attributes.push_back({ gfx::GFXVertexInputDataFormat::R32G32_SFloat, offsetof(VertexData, Coords[i]) });
         }
         return vertDescription;
     }
@@ -111,13 +111,9 @@ public:
         {{0.5f, -0.5f, 0.5f}, {0.f,1.f,0.f}, {0.f,0.f,0.f}, {0.0f, 0.0f, 1.0f, 1.f}, { {1.f, 0.f} }},
         {{-0.5f, -0.5f, 0.5f}, {0.f,1.f,0.f}, {0.f,0.f,0.f}, {1.0f, 1.0f, 1.0f, 1.f}, { {0.f, 0.f} }},
     };
-    //const std::vector<Vertex> vertices = {
-    //    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    //    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    //    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-    //    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
-    //};
-    struct UniformBufferObject {
+
+    struct UniformBufferObject
+    {
         glm::mat4 model;
         glm::mat4 view;
         glm::mat4 proj;
@@ -138,7 +134,13 @@ public:
         createDescriptorSetLayout();
         createGraphicsPipeline();
         createFramebuffers();
-        createTextureImage();
+
+        {
+            auto texbuf = readFile("textures/texture.png");
+            textureImage = std::static_pointer_cast<gfx::GFXVulkanTexture2D>(gfxapp->CreateTexture2DFromMemory((uint8_t*)texbuf.data(), texbuf.size()));
+        }
+
+
         createTextureImageView();
         createTextureSampler();
 
@@ -305,15 +307,7 @@ public:
         //图像关联内存
         vkBindImageMemory(gfxapp->GetVkDevice(), image, imageMemory, 0);
     }
-    void createTextureImage()
-    {
-        //读取图片至暂存buffer
-        //创建图片资源
-        //变换到最佳布局
-        //暂存buffer拷贝到图像资源
-        auto buf = readFile("textures/texture.png");
-        textureImage = std::static_pointer_cast<gfx::GFXVulkanTexture2D>(gfxapp->CreateTexture2DFromMemory((uint8_t*)buf.data(), buf.size()));
-    }
+
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
     {
         gfx::GFXCommandBufferScope commandBuffer(gfxapp);
