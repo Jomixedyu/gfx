@@ -12,13 +12,13 @@ namespace gfx
         bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         return bindingDescription;
     }
-    static VkFormat _GetVkFormat(GFXDataFormat format)
+    static VkFormat _GetVkFormat(GFXVertexInputDataFormat format)
     {
-        static std::unordered_map<GFXDataFormat, VkFormat> map
+        static std::unordered_map<GFXVertexInputDataFormat, VkFormat> map
         {
-            { GFXDataFormat::R32G32B32_SFloat, VK_FORMAT_R32G32B32_SFLOAT },
-            { GFXDataFormat::R32G32B32A32_SFloat, VK_FORMAT_R32G32B32A32_SFLOAT },
-            { GFXDataFormat::R32G32_SFloat, VK_FORMAT_R32G32_SFLOAT }
+            { GFXVertexInputDataFormat::R32G32B32_SFloat, VK_FORMAT_R32G32B32_SFLOAT },
+            { GFXVertexInputDataFormat::R32G32B32A32_SFloat, VK_FORMAT_R32G32B32A32_SFLOAT },
+            { GFXVertexInputDataFormat::R32G32_SFloat, VK_FORMAT_R32G32_SFLOAT }
         };
         auto it = map.find(format);
         assert(it != map.end());
