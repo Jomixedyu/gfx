@@ -2,6 +2,7 @@
 #include "GFXVulkanApplication.h"
 #include "GFXVulkanApplication.h"
 #include "GFXVulkanApplication.h"
+#include "GFXVulkanApplication.h"
 #include <gfx/GFXThirdParty/glfw/include/GLFW/glfw3.h>
 #include <stdexcept>
 #include <iostream>
@@ -661,6 +662,24 @@ namespace gfx
         m_swapChainFramebuffers.clear();
     }
 
+    void GFXVulkanApplication::InitDescriptorPool()
+    {
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes = &poolSize;
+        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+        if (vkCreateDescriptorPool(GetVkDevice(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create descriptor pool!");
+        }
+    }
+
     void GFXVulkanApplication::Initialize()
     {
         glfwInit();
@@ -698,6 +717,7 @@ namespace gfx
         this->InitCommandBuffers();
         this->InitDepthTestBuffer();
         this->InitFrameBuffers();
+        this->InitDescriptorPool();
     }
 
     void GFXVulkanApplication::ExecLoop()
@@ -738,6 +758,7 @@ namespace gfx
         this->TermDepthTestBuffer();
         this->TermFrameBuffers();
 
+        vkDestroyDescriptorPool(GetVkDevice(), m_descriptorPool, nullptr);
         vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 
 

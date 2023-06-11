@@ -130,7 +130,6 @@ public:
         gfxapp = static_cast<gfx::GFXVulkanApplication*>(gfx::CreateGFXApplication(gfx::GFXApi::Vulkan, config));
         gfxapp->Initialize();
 
-        //createDepthResources();
         createDescriptorSetLayout();
         createGraphicsPipeline();
 
@@ -149,7 +148,6 @@ public:
         uniformBuffers.push_back((gfx::GFXVulkanBuffer*)gfxapp->CreateBuffer(gfx::GFXBufferUsage::ConstantBuffer, sizeof(UniformBufferObject)));
         uniformBuffers.push_back((gfx::GFXVulkanBuffer*)gfxapp->CreateBuffer(gfx::GFXBufferUsage::ConstantBuffer, sizeof(UniformBufferObject)));
 
-        createDescriptorPool();
         createDescriptorSets();
         createSyncObjects();
 
@@ -170,31 +168,13 @@ public:
         return static_cast<gfx::GFXVulkanCommandBuffer*>(scope.operator->())->GetVkCommandBuffer();
     }
 
-    void createDescriptorPool()
-    {
-        VkDescriptorPoolSize poolSize{};
-        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-
-        VkDescriptorPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes = &poolSize;
-        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-
-        if (vkCreateDescriptorPool(gfxapp->GetVkDevice(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create descriptor pool!");
-        }
-    }
-
     void createDescriptorSets()
     {
 
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorPool = gfxapp->GetVkDescriptorPool();;
         //两个相同布局
         allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
         allocInfo.pSetLayouts = layouts.data();
@@ -281,7 +261,7 @@ private:
     gfx::GFXVulkanBuffer* indexBuffer;
 
     VkDescriptorSetLayout descriptorSetLayout;
-    VkDescriptorPool descriptorPool;
+    
     std::vector<VkDescriptorSet> descriptorSets;
 
 
@@ -347,7 +327,7 @@ private:
 
         textureImage.reset();
 
-        vkDestroyDescriptorPool(gfxapp->GetVkDevice(), descriptorPool, nullptr);
+        
         vkDestroyDescriptorSetLayout(gfxapp->GetVkDevice(), descriptorSetLayout, nullptr);
 
 
@@ -538,7 +518,7 @@ private:
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = gfxapp->GetVkRenderPass();
-        renderPassInfo.framebuffer = gfxapp->GetFrameBuffers()[imageIndex];
+        renderPassInfo.framebuffer = gfxapp->GetVkFrameBuffers()[imageIndex];
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = gfxapp->GetVkSwapChainExtent();
 

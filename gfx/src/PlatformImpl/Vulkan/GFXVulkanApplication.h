@@ -53,7 +53,8 @@ namespace gfx
         const std::vector<VkCommandBuffer> GetVkCommandBuffers() const { return m_commandBuffers; }
         const VkCommandBuffer& GetVkCommandBuffer(size_t index) const { return m_commandBuffers[index]; }
         VkImageView GetVkDepthImageView() const { return m_depthImageView; }
-        const std::vector<VkFramebuffer>& GetFrameBuffers() const { return m_swapChainFramebuffers; }
+        const std::vector<VkFramebuffer>& GetVkFrameBuffers() const { return m_swapChainFramebuffers; }
+        VkDescriptorPool GetVkDescriptorPool() const { return m_descriptorPool; }
     protected:
         static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
     private:
@@ -62,6 +63,7 @@ namespace gfx
         void InitPickPhysicalDevice();
         void InitLogicalDevice();
         void InitCommandPool();
+        void InitDescriptorPool();
     public:
         void InitSwapChain();
         void InitRenderPass();
@@ -103,6 +105,8 @@ namespace gfx
 
         VkQueue m_graphicsQueue;
         VkQueue m_presentQueue;
+
+        VkDescriptorPool m_descriptorPool;
 
         array_list<char*> m_extensions;
         size_t m_count = 0;
