@@ -141,9 +141,6 @@ public:
         }
 
 
-        createTextureImageView();
-        createTextureSampler();
-
         vertexBuffer = gfxapp->CreateBuffer(gfx::GFXBufferUsage::Vertex, sizeof(vertices[0]) * vertices.size());
         vertexBuffer->Fill(vertices.data());
 
@@ -200,38 +197,7 @@ public:
         }
         throw std::runtime_error("failed to find supported format!");
     }
-    void createTextureSampler()
-    {
-        VkSamplerCreateInfo samplerInfo{};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_LINEAR;
-        samplerInfo.minFilter = VK_FILTER_LINEAR;
 
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-        VkPhysicalDeviceProperties properties{};
-        vkGetPhysicalDeviceProperties(gfxapp->GetVkPhysicalDevice(), &properties);
-
-        samplerInfo.anisotropyEnable = VK_TRUE;
-        samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-        samplerInfo.unnormalizedCoordinates = VK_FALSE; //采样范围0-1
-
-        samplerInfo.compareEnable = VK_FALSE;
-        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        samplerInfo.mipLodBias = 0.0f;
-        samplerInfo.minLod = 0.0f;
-        samplerInfo.maxLod = 0.0f;
-
-        if (vkCreateSampler(gfxapp->GetVkDevice(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create texture sampler!");
-        }
-    }
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
     {
@@ -254,19 +220,14 @@ public:
 
         return imageView;
     }
-    void createTextureImageView()
-    {
 
-        textureImageView = createImageView(textureImage->GetVkImage(), textureImage->GetImageFormat(), VK_IMAGE_ASPECT_COLOR_BIT);
-
-    }
 
     //VkImage textureImage;
     //VkDeviceMemory textureImageMemory;
     std::shared_ptr<gfx::GFXVulkanTexture2D> textureImage;
 
-    VkImageView textureImageView;
-    VkSampler textureSampler;
+    //VkImageView textureImageView;
+    //VkSampler textureSampler;
 
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
@@ -479,8 +440,8 @@ public:
 
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = textureImageView;
-            imageInfo.sampler = textureSampler;
+            imageInfo.imageView = textureImage->GetVkImageView();
+            imageInfo.sampler = textureImage->GetVkSampler();
 
             //重新配置关联descriptor set和buffer引用
             std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
@@ -624,11 +585,6 @@ private:
             uniformBuffer->Release();
         }
 
-
-
-
-        vkDestroySampler(gfxapp->GetVkDevice(), textureSampler, nullptr);
-        vkDestroyImageView(gfxapp->GetVkDevice(), textureImageView, nullptr);
 
         textureImage.reset();
 

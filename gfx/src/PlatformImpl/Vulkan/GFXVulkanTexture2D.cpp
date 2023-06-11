@@ -167,6 +167,61 @@ namespace gfx
             &region
         );
     }
+    static VkImageView _CreateImageView(GFXVulkanApplication* app, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
+    {
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image = image;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = format;
+        viewInfo.subresourceRange.aspectMask = aspectFlags;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 1;
+
+        VkImageView imageView;
+        if (vkCreateImageView(app->GetVkDevice(), &viewInfo, nullptr, &imageView) != VK_SUCCESS) 
+        {
+            throw std::runtime_error("failed to create texture image view!");
+        }
+
+        return imageView;
+    }
+    static VkSampler _CreateTextureSampler(GFXVulkanApplication* app)
+    {
+        VkSamplerCreateInfo samplerInfo{};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
+
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+        VkPhysicalDeviceProperties properties{};
+        vkGetPhysicalDeviceProperties(app->GetVkPhysicalDevice(), &properties);
+
+        samplerInfo.anisotropyEnable = VK_TRUE;
+        samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        samplerInfo.unnormalizedCoordinates = VK_FALSE; //²ÉÑù·¶Î§0-1
+
+        samplerInfo.compareEnable = VK_FALSE;
+        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerInfo.mipLodBias = 0.0f;
+        samplerInfo.minLod = 0.0f;
+        samplerInfo.maxLod = 0.0f;
+
+        VkSampler sampler;
+        if (vkCreateSampler(app->GetVkDevice(), &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create texture sampler!");
+        }
+        return sampler;
+    }
 
     GFXVulkanTexture2D::~GFXVulkanTexture2D()
     {
@@ -174,29 +229,11 @@ namespace gfx
         {
             vkDestroyImage(m_app->GetVkDevice(), m_textureImage, nullptr);
             vkFreeMemory(m_app->GetVkDevice(), m_textureImageMemory, nullptr);
+            vkDestroySampler(m_app->GetVkDevice(), m_textureSampler, nullptr);
+            vkDestroyImageView(m_app->GetVkDevice(), m_textureImageView, nullptr);
         }
     }
-    static VkFormat _GetVkFormat(int channel)
-    {
-        if (channel == 1)
-        {
-            return VkFormat::VK_FORMAT_R8_SRGB;
-        }
-        else if (channel == 2)
-        {
-            return VkFormat::VK_FORMAT_R8G8_SRGB;
-        }
-        else if (channel == 3)
-        {
-            return VkFormat::VK_FORMAT_R8G8B8_SRGB;
-        }
-        else if (channel == 4)
-        {
-            return VkFormat::VK_FORMAT_R8G8B8A8_SRGB;
-        }
-        assert(false);
-        return {};
-    }
+
     void GFXVulkanTexture2D::Init(
         GFXVulkanApplication* app,
         const uint8_t* imageData,
@@ -214,6 +251,7 @@ namespace gfx
         m_width = width;
         m_height = height;
         m_channel = channel;
+        m_imageFormat = format;
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
@@ -227,7 +265,6 @@ namespace gfx
         memcpy(data, imageData, static_cast<size_t>(imageSize));
         vkUnmapMemory(app->GetVkDevice(), stagingBufferMemory);
 
-        m_imageFormat = format;
 
         _CreateImage(app, width, height,
             m_imageFormat,
@@ -243,6 +280,9 @@ namespace gfx
         vkDestroyBuffer(app->GetVkDevice(), stagingBuffer, nullptr);
         vkFreeMemory(app->GetVkDevice(), stagingBufferMemory, nullptr);
 
+        m_textureImageView = _CreateImageView(m_app, m_textureImage, m_imageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+        m_textureSampler = _CreateTextureSampler(m_app);
+
         m_inited = true;
     }
     const uint8_t* GFXVulkanTexture2D::GetData() const
@@ -250,17 +290,6 @@ namespace gfx
         return nullptr;
     }
 
-    static void _ReleaseStbi(uint8_t* data)
-    {
-        stbi_image_free(data);
-    }
-
-    static void _CheckFormat(GFXVulkanApplication* app, VkFormat format)
-    {
-        VkFormatProperties prop;
-        vkGetPhysicalDeviceFormatProperties(app->GetVkPhysicalDevice(), format, &prop);
-        assert(prop.bufferFeatures);
-    }
 
     static VkFormat _GetVkFormat(GFXTextureFormat format)
     {

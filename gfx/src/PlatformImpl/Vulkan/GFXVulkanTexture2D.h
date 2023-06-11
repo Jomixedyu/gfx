@@ -30,12 +30,16 @@ namespace gfx
     public:
 
         VkImage GetVkImage() const { return m_textureImage; }
-        VkFormat GetImageFormat() const { return m_imageFormat; }
+        VkImageView GetVkImageView() const { return m_textureImageView; }
+        VkSampler GetVkSampler() const { return m_textureSampler; }
+        VkFormat GetVkImageFormat() const { return m_imageFormat; }
     protected:
         GFXVulkanApplication* m_app;
 
         VkImage m_textureImage;
         VkDeviceMemory m_textureImageMemory;
+        VkImageView m_textureImageView;
+        VkSampler m_textureSampler;
         VkFormat m_imageFormat;
 
         bool m_inited = false;
