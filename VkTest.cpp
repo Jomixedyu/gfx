@@ -42,56 +42,18 @@
 #include <chrono>
 #include <BufferHelper.h>
 #include <VulkanShaderModule.h>
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
+#include "VertexData.h"
+#include "IOHelper.hpp"
+
+#define VULKAN_REVERT_VIEWPORT 1
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
-
-const std::vector<const char*> validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
-};
-
-const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
 #else
 const bool enableValidationLayers = true;
 #endif
-
-namespace gfx
-{
-    struct VertexData
-    {
-        static constexpr int MAX_COORD_NUM = 4;
-
-        glm::vec3 Position;
-        glm::vec3 Normal;
-        glm::vec3 Tangent;
-        glm::vec4 VertColor;
-        glm::vec2 Coords[MAX_COORD_NUM];
-    };
-
-    static auto GetBindingDescription(gfx::GFXVulkanApplication* app)
-    {
-        auto vertDescription = app->CreateVertexLayoutDescription();
-        vertDescription->BindingPoint = 0;
-        vertDescription->Stride = sizeof(VertexData);
-
-        vertDescription->Attributes.push_back({ gfx::GFXVertexInputDataFormat::R32G32B32_SFloat, offsetof(VertexData, Position) });
-        vertDescription->Attributes.push_back({ gfx::GFXVertexInputDataFormat::R32G32B32_SFloat, offsetof(VertexData, Normal) });
-        vertDescription->Attributes.push_back({ gfx::GFXVertexInputDataFormat::R32G32B32_SFloat, offsetof(VertexData, Tangent) });
-        vertDescription->Attributes.push_back({ gfx::GFXVertexInputDataFormat::R32G32B32A32_SFloat, offsetof(VertexData, VertColor) });
-        for (size_t i = 0; i < VertexData::MAX_COORD_NUM; i++)
-        {
-            vertDescription->Attributes.push_back({ gfx::GFXVertexInputDataFormat::R32G32_SFloat, offsetof(VertexData, Coords[i]) });
-        }
-        return vertDescription;
-    }
-
-}
 
 
 class HelloTriangleApplication {
@@ -135,7 +97,7 @@ public:
         createGraphicsPipeline();
 
         {
-            auto texbuf = readFile("textures/texture.png");
+            auto texbuf = IOHelper::ReadFile("textures/texture.png");
             textureImage = std::static_pointer_cast<gfx::GFXVulkanTexture2D>(gfxapp->CreateTexture2DFromMemory((uint8_t*)texbuf.data(), texbuf.size()));
         }
 
@@ -346,8 +308,8 @@ private:
 
     void createGraphicsPipeline() {
 
-        auto vertShaderCode = readFile("shader/lit.vert.spv");
-        auto fragShaderCode = readFile("shader/lit.pixel.spv");
+        auto vertShaderCode = IOHelper::ReadFile("shader/lit.vert.spv");
+        auto fragShaderCode = IOHelper::ReadFile("shader/lit.pixel.spv");
 
         gfx::VulkanShaderModule shaderModule{ gfxapp, (uint8_t*)vertShaderCode.data(), vertShaderCode.size(), (uint8_t*)fragShaderCode.data(), fragShaderCode.size() };
 
@@ -490,16 +452,20 @@ private:
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
             VkViewport viewport{};
+#if VULKAN_REVERT_VIEWPORT
             viewport.x = 0.0f;
             viewport.y = 0.0f + gfxapp->GetVkSwapChainExtent().height;
             viewport.width = (float)gfxapp->GetVkSwapChainExtent().width;
             viewport.height = -(float)gfxapp->GetVkSwapChainExtent().height;
-            //viewport.x = 0.0f;
-            //viewport.y = 0.0f;
-            //viewport.width = (float)gfxapp->GetVkSwapChainExtent().width;
-            //viewport.height = (float)gfxapp->GetVkSwapChainExtent().height;
-            //viewport.minDepth = 0.0f;
-            //viewport.maxDepth = 1.0f;
+#else
+            viewport.x = 0.0f;
+            viewport.y = 0.0f;
+            viewport.width = (float)gfxapp->GetVkSwapChainExtent().width;
+            viewport.height = (float)gfxapp->GetVkSwapChainExtent().height;
+#endif
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+
             vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
             VkRect2D scissor{};
@@ -637,49 +603,19 @@ private:
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    VkShaderModule createShaderModule(const std::vector<char>& code) {
-        VkShaderModuleCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = code.size();
-        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-        VkShaderModule shaderModule;
-        if (vkCreateShaderModule(gfxapp->GetVkDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create shader module!");
-        }
-
-        return shaderModule;
-    }
-
-
-
-    static std::vector<char> readFile(const std::string& filename) {
-        std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-        if (!file.is_open()) {
-            throw std::runtime_error("failed to open file!");
-        }
-
-        size_t fileSize = (size_t)file.tellg();
-        std::vector<char> buffer(fileSize);
-
-        file.seekg(0);
-        file.read(buffer.data(), fileSize);
-
-        file.close();
-
-        return buffer;
-    }
 
 };
 
-int main() {
+int main() 
+{
     HelloTriangleApplication app;
 
-    try {
+    try 
+    {
         app.run();
     }
-    catch (const std::exception& e) {
+    catch (const std::exception& e)
+    {
         std::cerr << "ERROR: " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
