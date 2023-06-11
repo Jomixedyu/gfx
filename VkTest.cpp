@@ -41,6 +41,7 @@
 
 #include <chrono>
 #include <BufferHelper.h>
+#include <VulkanShaderModule.h>
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
@@ -261,13 +262,10 @@ private:
     gfx::GFXVulkanBuffer* indexBuffer;
 
     VkDescriptorSetLayout descriptorSetLayout;
-    
+
     std::vector<VkDescriptorSet> descriptorSets;
 
 
-    /*std::vector<VkFramebuffer> swapChainFramebuffers;*/
-
-    //VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
 
@@ -327,7 +325,7 @@ private:
 
         textureImage.reset();
 
-        
+
         vkDestroyDescriptorSetLayout(gfxapp->GetVkDevice(), descriptorSetLayout, nullptr);
 
 
@@ -351,22 +349,7 @@ private:
         auto vertShaderCode = readFile("shader/lit.vert.spv");
         auto fragShaderCode = readFile("shader/lit.pixel.spv");
 
-        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
-        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
-
-        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-        vertShaderStageInfo.module = vertShaderModule;
-        vertShaderStageInfo.pName = "main";
-
-        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        fragShaderStageInfo.module = fragShaderModule;
-        fragShaderStageInfo.pName = "main";
-
-        VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+        gfx::VulkanShaderModule shaderModule{ gfxapp, (uint8_t*)vertShaderCode.data(), vertShaderCode.size(), (uint8_t*)fragShaderCode.data(), fragShaderCode.size() };
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -453,12 +436,12 @@ private:
         depthStencil.stencilTestEnable = VK_FALSE;
         depthStencil.front = {}; // Optional
         depthStencil.back = {}; // Optional
-        
+
 
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineInfo.stageCount = 2;
-        pipelineInfo.pStages = shaderStages;
+        pipelineInfo.pStages = shaderModule.ShaderStages;
         pipelineInfo.pVertexInputState = &vertexInputInfo;
         pipelineInfo.pInputAssemblyState = &inputAssembly;
         pipelineInfo.pViewportState = &viewportState;
@@ -472,39 +455,12 @@ private:
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
         pipelineInfo.pDepthStencilState = &depthStencil;
 
-        if (vkCreateGraphicsPipelines(gfxapp->GetVkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+        if (vkCreateGraphicsPipelines(gfxapp->GetVkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS)
+        {
             throw std::runtime_error("failed to create graphics pipeline!");
         }
 
-        vkDestroyShaderModule(gfxapp->GetVkDevice(), fragShaderModule, nullptr);
-        vkDestroyShaderModule(gfxapp->GetVkDevice(), vertShaderModule, nullptr);
     }
-
-    //void createFramebuffers()
-    //{
-    //    swapChainFramebuffers.resize(gfxapp->GetVkSwapchainImageViews().size());
-
-    //    for (size_t i = 0; i < gfxapp->GetVkSwapchainImageViews().size(); i++) {
-
-    //        std::array<VkImageView, 2> attachments = {
-    //            gfxapp->GetVkSwapchainImageViews()[i],
-    //            gfxapp->GetVkDepthImageView()
-    //        };
-
-    //        VkFramebufferCreateInfo framebufferInfo{};
-    //        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    //        framebufferInfo.renderPass = gfxapp->GetVkRenderPass();
-    //        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    //        framebufferInfo.pAttachments = attachments.data();
-    //        framebufferInfo.width = gfxapp->GetVkSwapChainExtent().width;
-    //        framebufferInfo.height = gfxapp->GetVkSwapChainExtent().height;
-    //        framebufferInfo.layers = 1;
-
-    //        if (vkCreateFramebuffer(gfxapp->GetVkDevice(), &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
-    //            throw std::runtime_error("failed to create framebuffer!");
-    //        }
-    //    }
-    //}
 
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
