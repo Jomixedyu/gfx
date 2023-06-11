@@ -22,7 +22,7 @@ namespace gfx
         int32_t GetChannelCount() const { return m_channel; }
         virtual const uint8_t* GetData() const = 0;
     protected:
-        bool m_allowCpuRead;
+        bool m_enableReadWrite;
         int32_t m_width;
         int32_t m_height;
         int32_t m_channel;

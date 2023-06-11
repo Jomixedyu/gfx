@@ -13,6 +13,7 @@
 #include <cmath>
 #include <algorithm>
 #include <stdlib.h>
+#include "BufferHelper.h"
 
 #undef max
 
@@ -475,10 +476,13 @@ namespace gfx
         }
     }
 
-    static bool hasStencilComponent(VkFormat format) {
+    static bool _HasStencilComponent(VkFormat format)
+    {
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
-    static VkFormat findSupportedFormat(GFXVulkanApplication* app, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+    static VkFormat _FindSupportedFormat(
+        GFXVulkanApplication* app, 
+        const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
     {
         for (VkFormat format : candidates) {
             VkFormatProperties props;
@@ -493,13 +497,15 @@ namespace gfx
         }
         throw std::runtime_error("failed to find supported format!");
     }
-    static VkFormat findDepthFormat(GFXVulkanApplication* app) {
-        return findSupportedFormat(app,
+    static VkFormat _FindDepthFormat(GFXVulkanApplication* app)
+    {
+        return _FindSupportedFormat(app,
             { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
             VK_IMAGE_TILING_OPTIMAL,
             VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
         );
     }
+
     void GFXVulkanApplication::InitRenderPass()
     {
         VkAttachmentDescription colorAttachment{};
@@ -514,7 +520,7 @@ namespace gfx
             colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
         }
         VkAttachmentDescription depthAttachment{};
-        depthAttachment.format = findDepthFormat(this);
+        depthAttachment.format = _FindDepthFormat(this);
         depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -586,6 +592,33 @@ namespace gfx
         }
     }
 
+
+    void GFXVulkanApplication::InitDepthTestBuffer()
+    {
+        this->TermDepthTestBuffer();
+        VkFormat depthFormat = _FindDepthFormat(this);
+        auto extent = this->GetVkSwapChainExtent();
+        BufferHelper::CreateImage(
+            this, extent.width, extent.height, depthFormat, 
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            m_depthImage, m_depthImageMemory);
+        m_depthImageView = BufferHelper::CreateImageView(this, m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+        BufferHelper::TransitionImageLayout(this, m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    }
+
+    void GFXVulkanApplication::TermDepthTestBuffer()
+    {
+        if (m_depthImage != VK_NULL_HANDLE)
+        {
+            vkDestroyImageView(m_device, m_depthImageView, nullptr);
+            vkDestroyImage(m_device, m_depthImage, nullptr);
+            vkFreeMemory(m_device, m_depthImageMemory, nullptr);
+            m_depthImage = VK_NULL_HANDLE;
+        }
+    }
+
     void GFXVulkanApplication::Initialize()
     {
         glfwInit();
@@ -621,6 +654,7 @@ namespace gfx
         this->InitSwapChain();
         this->InitRenderPass();
         this->InitCommandBuffers();
+        this->InitDepthTestBuffer();
     }
 
     void GFXVulkanApplication::ExecLoop()
@@ -658,6 +692,7 @@ namespace gfx
 
     void GFXVulkanApplication::Terminate()
     {
+        this->TermDepthTestBuffer();
 
         vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 

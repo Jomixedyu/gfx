@@ -52,6 +52,7 @@ namespace gfx
         const VkRenderPass& GetVkRenderPass() const { return m_renderPass; }
         const std::vector<VkCommandBuffer> GetVkCommandBuffers() const { return m_commandBuffers; }
         const VkCommandBuffer& GetVkCommandBuffer(size_t index) const { return m_commandBuffers[index]; }
+        VkImageView GetVkDepthImageView() const { return m_depthImageView; }
     protected:
         static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
     private:
@@ -64,6 +65,8 @@ namespace gfx
         void InitSwapChain();
         void InitRenderPass();
         void InitCommandBuffers();
+        void InitDepthTestBuffer();
+        void TermDepthTestBuffer();
     protected:
 
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
@@ -75,6 +78,10 @@ namespace gfx
         VkSurfaceKHR m_surface;
         VkDebugUtilsMessengerEXT m_debugMessenger;
         VkCommandPool m_commandPool;
+
+        VkImage m_depthImage = VK_NULL_HANDLE;
+        VkDeviceMemory m_depthImageMemory = VK_NULL_HANDLE;
+        VkImageView m_depthImageView = VK_NULL_HANDLE;
 
         VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
         VkDevice m_device;
