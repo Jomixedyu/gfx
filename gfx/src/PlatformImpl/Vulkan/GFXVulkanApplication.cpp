@@ -1,5 +1,7 @@
 #include "GFXVulkanApplication.h"
 #include "GFXVulkanApplication.h"
+#include "GFXVulkanApplication.h"
+#include "GFXVulkanApplication.h"
 #include <gfx/GFXThirdParty/glfw/include/GLFW/glfw3.h>
 #include <stdexcept>
 #include <iostream>
@@ -11,6 +13,7 @@
 
 #include <set>
 #include <cmath>
+#include <array>
 #include <algorithm>
 #include <stdlib.h>
 #include "BufferHelper.h"
@@ -619,6 +622,45 @@ namespace gfx
         }
     }
 
+    void GFXVulkanApplication::InitFrameBuffers()
+    {
+        this->TermFrameBuffers();
+        m_swapChainFramebuffers.resize(GetVkSwapchainImageViews().size());
+
+        for (size_t i = 0; i < GetVkSwapchainImageViews().size(); i++) {
+
+            std::array<VkImageView, 2> attachments =
+            {
+                GetVkSwapchainImageViews()[i],
+                GetVkDepthImageView()
+            };
+
+            VkFramebufferCreateInfo framebufferInfo{};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = GetVkRenderPass();
+            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+            framebufferInfo.pAttachments = attachments.data();
+            framebufferInfo.width = GetVkSwapChainExtent().width;
+            framebufferInfo.height = GetVkSwapChainExtent().height;
+            framebufferInfo.layers = 1;
+
+            if (vkCreateFramebuffer(GetVkDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS) 
+            {
+                throw std::runtime_error("failed to create framebuffer!");
+            }
+        }
+    }
+
+    
+    void GFXVulkanApplication::TermFrameBuffers()
+    {
+        for (size_t i = 0; i < m_swapChainFramebuffers.size(); i++)
+        {
+            vkDestroyFramebuffer(GetVkDevice(), m_swapChainFramebuffers[i], nullptr);
+        }
+        m_swapChainFramebuffers.clear();
+    }
+
     void GFXVulkanApplication::Initialize()
     {
         glfwInit();
@@ -655,6 +697,7 @@ namespace gfx
         this->InitRenderPass();
         this->InitCommandBuffers();
         this->InitDepthTestBuffer();
+        this->InitFrameBuffers();
     }
 
     void GFXVulkanApplication::ExecLoop()
@@ -693,6 +736,7 @@ namespace gfx
     void GFXVulkanApplication::Terminate()
     {
         this->TermDepthTestBuffer();
+        this->TermFrameBuffers();
 
         vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 

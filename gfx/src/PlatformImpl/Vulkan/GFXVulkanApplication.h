@@ -53,6 +53,7 @@ namespace gfx
         const std::vector<VkCommandBuffer> GetVkCommandBuffers() const { return m_commandBuffers; }
         const VkCommandBuffer& GetVkCommandBuffer(size_t index) const { return m_commandBuffers[index]; }
         VkImageView GetVkDepthImageView() const { return m_depthImageView; }
+        const std::vector<VkFramebuffer>& GetFrameBuffers() const { return m_swapChainFramebuffers; }
     protected:
         static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
     private:
@@ -67,6 +68,8 @@ namespace gfx
         void InitCommandBuffers();
         void InitDepthTestBuffer();
         void TermDepthTestBuffer();
+        void InitFrameBuffers();
+        void TermFrameBuffers();
     protected:
 
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;

@@ -133,7 +133,6 @@ public:
         //createDepthResources();
         createDescriptorSetLayout();
         createGraphicsPipeline();
-        createFramebuffers();
 
         {
             auto texbuf = readFile("textures/texture.png");
@@ -286,7 +285,7 @@ private:
     std::vector<VkDescriptorSet> descriptorSets;
 
 
-    std::vector<VkFramebuffer> swapChainFramebuffers;
+    /*std::vector<VkFramebuffer> swapChainFramebuffers;*/
 
     //VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
@@ -306,9 +305,6 @@ private:
 
 
     void cleanupSwapChain() {
-        for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
-            vkDestroyFramebuffer(gfxapp->GetVkDevice(), swapChainFramebuffers[i], nullptr);
-        }
 
         for (size_t i = 0; i < gfxapp->GetVkSwapchainImageViews().size(); i++) {
             vkDestroyImageView(gfxapp->GetVkDevice(), gfxapp->GetVkSwapchainImageViews()[i], nullptr);
@@ -333,21 +329,8 @@ private:
 
         gfxapp->InitSwapChain();
         gfxapp->InitDepthTestBuffer();
-        //createDepthResources();
-        //createSwapChain();
-        //createImageViews();
-        createFramebuffers();
-    }
+        gfxapp->InitFrameBuffers();
 
-    void mainLoop()
-    {
-
-        while (!glfwWindowShouldClose(reinterpret_cast<GLFWwindow*>(gfxapp->GetWindowHandle()))) {
-            glfwPollEvents();
-            //drawFrame();
-        }
-
-        vkDeviceWaitIdle(gfxapp->GetVkDevice());
     }
 
     void cleanup() {
@@ -517,31 +500,31 @@ private:
         vkDestroyShaderModule(gfxapp->GetVkDevice(), vertShaderModule, nullptr);
     }
 
-    void createFramebuffers()
-    {
-        swapChainFramebuffers.resize(gfxapp->GetVkSwapchainImageViews().size());
+    //void createFramebuffers()
+    //{
+    //    swapChainFramebuffers.resize(gfxapp->GetVkSwapchainImageViews().size());
 
-        for (size_t i = 0; i < gfxapp->GetVkSwapchainImageViews().size(); i++) {
+    //    for (size_t i = 0; i < gfxapp->GetVkSwapchainImageViews().size(); i++) {
 
-            std::array<VkImageView, 2> attachments = {
-                gfxapp->GetVkSwapchainImageViews()[i],
-                gfxapp->GetVkDepthImageView()
-            };
+    //        std::array<VkImageView, 2> attachments = {
+    //            gfxapp->GetVkSwapchainImageViews()[i],
+    //            gfxapp->GetVkDepthImageView()
+    //        };
 
-            VkFramebufferCreateInfo framebufferInfo{};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = gfxapp->GetVkRenderPass();
-            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-            framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = gfxapp->GetVkSwapChainExtent().width;
-            framebufferInfo.height = gfxapp->GetVkSwapChainExtent().height;
-            framebufferInfo.layers = 1;
+    //        VkFramebufferCreateInfo framebufferInfo{};
+    //        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    //        framebufferInfo.renderPass = gfxapp->GetVkRenderPass();
+    //        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    //        framebufferInfo.pAttachments = attachments.data();
+    //        framebufferInfo.width = gfxapp->GetVkSwapChainExtent().width;
+    //        framebufferInfo.height = gfxapp->GetVkSwapChainExtent().height;
+    //        framebufferInfo.layers = 1;
 
-            if (vkCreateFramebuffer(gfxapp->GetVkDevice(), &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
-                throw std::runtime_error("failed to create framebuffer!");
-            }
-        }
-    }
+    //        if (vkCreateFramebuffer(gfxapp->GetVkDevice(), &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
+    //            throw std::runtime_error("failed to create framebuffer!");
+    //        }
+    //    }
+    //}
 
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
@@ -555,7 +538,7 @@ private:
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = gfxapp->GetVkRenderPass();
-        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+        renderPassInfo.framebuffer = gfxapp->GetFrameBuffers()[imageIndex];
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = gfxapp->GetVkSwapChainExtent();
 
