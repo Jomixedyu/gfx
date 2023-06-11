@@ -7,6 +7,8 @@
 #include "GFXVulkanCommandBuffer.h"
 #include "GFXVulkanBuffer.h"
 #include "GFXVulkanVertexLayoutDescription .h"
+#include "GFXVulkanTexture2D.h"
+
 #include <set>
 #include <cmath>
 #include <algorithm>
@@ -345,7 +347,8 @@ namespace gfx
     {
         for (const auto& availableFormat : availableFormats)
         {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            {
                 return availableFormat;
             }
         }
@@ -386,7 +389,7 @@ namespace gfx
         }
     }
 
-    void GFXVulkanApplication::CreateSwapChain()
+    void GFXVulkanApplication::InitSwapChain()
     {
         SwapChainSupportDetails swapChainSupport = _QuerySwapChainSupport(this);
         VkSurfaceFormatKHR surfaceFormat = _ChooseSwapSurfaceFormat(swapChainSupport.formats);
@@ -497,7 +500,7 @@ namespace gfx
             VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
         );
     }
-    void GFXVulkanApplication::CreateRenderPass()
+    void GFXVulkanApplication::InitRenderPass()
     {
         VkAttachmentDescription colorAttachment{};
         {
@@ -548,7 +551,7 @@ namespace gfx
         dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-        VkAttachmentDescription attachments[2] = {colorAttachment, depthAttachment};
+        VkAttachmentDescription attachments[2] = { colorAttachment, depthAttachment };
 
         VkRenderPassCreateInfo renderPassInfo{};
         {
@@ -568,7 +571,7 @@ namespace gfx
         }
     }
 
-    void GFXVulkanApplication::CreateCommandBuffers()
+    void GFXVulkanApplication::InitCommandBuffers()
     {
         m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -615,9 +618,9 @@ namespace gfx
         this->InitPickPhysicalDevice();
         this->InitLogicalDevice();
         this->InitCommandPool();
-        this->CreateSwapChain();
-        this->CreateRenderPass();
-        this->CreateCommandBuffers();
+        this->InitSwapChain();
+        this->InitRenderPass();
+        this->InitCommandBuffers();
     }
 
     void GFXVulkanApplication::ExecLoop()
@@ -690,4 +693,15 @@ namespace gfx
     {
         return std::shared_ptr<GFXVertexLayoutDescription>(new GFXVulkanVertexLayoutDescription());
     }
+    std::shared_ptr<GFXImage> GFXVulkanApplication::CreateImage()
+    {
+        return std::shared_ptr<GFXImage>();
+    }
+
+    std::shared_ptr<GFXTexture2D> gfx::GFXVulkanApplication::CreateTexture2DFromMemory(
+        const uint8_t* data, int32_t length, bool enableReadWrite, GFXTextureFormat format)
+    {
+        return GFXVulkanTexture2D::CreateFromMemory(this, data, length, enableReadWrite, format);
+    }
+
 }

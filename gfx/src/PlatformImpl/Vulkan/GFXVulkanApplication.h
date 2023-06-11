@@ -29,6 +29,12 @@ namespace gfx
         virtual GFXBuffer* CreateBuffer(GFXBufferUsage usage, size_t bufferSize) override;
         virtual std::shared_ptr<GFXCommandBuffer> CreateCommandBuffer() override;
         virtual std::shared_ptr<GFXVertexLayoutDescription> CreateVertexLayoutDescription() override;
+        virtual std::shared_ptr<GFXImage> CreateImage() override;
+
+        virtual std::shared_ptr<GFXTexture2D> CreateTexture2DFromMemory(
+            const uint8_t* data, int32_t length,
+            bool enableReadWrite = false, GFXTextureFormat format = GFXTextureFormat::R8G8B8A8_SRGB) override;
+
         virtual GFXExtensions GetExtensionNames() override;
         virtual intptr_t GetWindowHandle() override;
     public:
@@ -55,11 +61,11 @@ namespace gfx
         void InitLogicalDevice();
         void InitCommandPool();
     public:
-        void CreateSwapChain();
-        void CreateRenderPass();
-        void CreateCommandBuffers();
+        void InitSwapChain();
+        void InitRenderPass();
+        void InitCommandBuffers();
     protected:
-        
+
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
         GLFWwindow* m_window;

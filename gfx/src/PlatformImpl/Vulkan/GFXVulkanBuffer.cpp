@@ -1,6 +1,4 @@
 #include "GFXVulkanBuffer.h"
-#include "GFXVulkanBuffer.h"
-#include "GFXVulkanBuffer.h"
 #include "GFXVulkanApplication.h"
 #include <cassert>
 #include <stdexcept>
@@ -12,6 +10,7 @@ namespace gfx
     GFXVulkanBuffer::GFXVulkanBuffer(GFXVulkanApplication* app, GFXBufferUsage usage, size_t bufferSize)
         : m_app(app), base(usage, bufferSize)
     {
+
         if (IsGpuLocalMemory())
         {
             BufferHelper::CreateBuffer(m_app, m_bufferSize,
@@ -97,7 +96,7 @@ namespace gfx
             vkUsage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
             break;
         default:
-            assert(false);
+            vkUsage = 0;
             break;
         }
         return vkUsage;

@@ -37,6 +37,8 @@
 #include <GFXVulkanApplication.h>
 #include <GFXVulkanBuffer.h>
 #include <GFXVulkanVertexLayoutDescription .h>
+#include <GFXVulkanTexture2D.h>
+
 #include <chrono>
 #include <BufferHelper.h>
 const uint32_t WIDTH = 800;
@@ -252,12 +254,15 @@ public:
     }
     void createTextureImageView()
     {
-        textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+
+        textureImageView = createImageView(textureImage->GetVkImage(), textureImage->GetImageFormat(), VK_IMAGE_ASPECT_COLOR_BIT);
 
     }
 
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
+    //VkImage textureImage;
+    //VkDeviceMemory textureImageMemory;
+    std::shared_ptr<gfx::GFXVulkanTexture2D> textureImage;
+
     VkImageView textureImageView;
     VkSampler textureSampler;
 
@@ -306,40 +311,8 @@ public:
         //创建图片资源
         //变换到最佳布局
         //暂存buffer拷贝到图像资源
-
-        int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load("textures/texture.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        VkDeviceSize imageSize = texWidth * texHeight * 4;
-
-        if (!pixels) {
-            throw std::runtime_error("failed to load texture image!");
-        }
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        gfx::BufferHelper::CreateBuffer(gfxapp, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-        void* data;
-        vkMapMemory(gfxapp->GetVkDevice(), stagingBufferMemory, 0, imageSize, 0, &data);
-        memcpy(data, pixels, static_cast<size_t>(imageSize));
-        vkUnmapMemory(gfxapp->GetVkDevice(), stagingBufferMemory);
-
-        stbi_image_free(pixels);
-
-        createImage(texWidth, texHeight,
-            VK_FORMAT_R8G8B8A8_SRGB,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
-
-        transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-        //变换为采样最佳
-        transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-        vkDestroyBuffer(gfxapp->GetVkDevice(), stagingBuffer, nullptr);
-        vkFreeMemory(gfxapp->GetVkDevice(), stagingBufferMemory, nullptr);
+        auto buf = readFile("textures/texture.png");
+        textureImage = std::static_pointer_cast<gfx::GFXVulkanTexture2D>(gfxapp->CreateTexture2DFromMemory((uint8_t*)buf.data(), buf.size()));
     }
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
     {
@@ -516,16 +489,6 @@ public:
             imageInfo.sampler = textureSampler;
 
             //重新配置关联descriptor set和buffer引用
-            //VkWriteDescriptorSet descriptorWrite{};
-            //descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            //descriptorWrite.dstSet = descriptorSets[i];
-            //descriptorWrite.dstBinding = 0;
-            //descriptorWrite.dstArrayElement = 0;
-            //descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            //descriptorWrite.descriptorCount = 1;
-            //descriptorWrite.pBufferInfo = &bufferInfo;
-            //descriptorWrite.pImageInfo = nullptr; // Optional
-            //descriptorWrite.pTexelBufferView = nullptr; // Optional
             std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -560,10 +523,6 @@ public:
         uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
-        //VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        //layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        //layoutInfo.bindingCount = 1;
-        //layoutInfo.pBindings = &uboLayoutBinding;
 
         VkDescriptorSetLayoutBinding samplerLayoutBinding{};
         samplerLayoutBinding.binding = 1;
@@ -593,21 +552,7 @@ private:
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
 
-    //VkPipelineLayout pipelineLayout;KC
 
-    //VkSurfaceKHR surface;
-
-    //VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    //VkDevice device;
-
-    //VkQueue graphicsQueue;
-    //VkQueue presentQueue;
-
-    //VkSwapchainKHR swapChain;
-    //std::vector<VkImage> swapChainImages;
-    //VkFormat swapChainImageFormat;
-    //VkExtent2D swapChainExtent;
-    //std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
     //VkRenderPass renderPass;
@@ -618,16 +563,12 @@ private:
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     std::vector<void*> uniformBuffersMapped;
 
-    //VkCommandPool commandPool;
-    /*std::vector<VkCommandBuffer> commandBuffers;*/
 
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
     uint32_t currentFrame = 0;
     bool framebufferResized = false;
-    //VkBuffer vertexBuffer;
-    //VkDeviceMemory vertexBufferMemory;
 
 
 
@@ -660,7 +601,7 @@ private:
 
         cleanupSwapChain();
 
-        gfxapp->CreateSwapChain();
+        gfxapp->InitSwapChain();
         createDepthResources();
         //createSwapChain();
         //createImageViews();
@@ -694,8 +635,8 @@ private:
 
         vkDestroySampler(gfxapp->GetVkDevice(), textureSampler, nullptr);
         vkDestroyImageView(gfxapp->GetVkDevice(), textureImageView, nullptr);
-        vkDestroyImage(gfxapp->GetVkDevice(), textureImage, nullptr);
-        vkFreeMemory(gfxapp->GetVkDevice(), textureImageMemory, nullptr);
+
+        textureImage.reset();
 
         vkDestroyDescriptorPool(gfxapp->GetVkDevice(), descriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(gfxapp->GetVkDevice(), descriptorSetLayout, nullptr);

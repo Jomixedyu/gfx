@@ -4,9 +4,12 @@
 #include "GFXBuffer.h"
 #include "GFXDescriptor.h"
 #include "GFXCommandBuffer.h"
+#include "GFXTexture2D.h"
+#include "GFXVertexLayoutDescription.h"
+#include "GFXImage.h"
+
 #include <functional>
 #include <memory>
-#include "GFXVertexLayoutDescription.h"
 
 namespace gfx
 {
@@ -38,6 +41,12 @@ namespace gfx
         virtual GFXBuffer* CreateBuffer(GFXBufferUsage usage, size_t bufferSize) = 0;
         virtual std::shared_ptr<GFXCommandBuffer> CreateCommandBuffer() = 0;
         virtual std::shared_ptr<GFXVertexLayoutDescription> CreateVertexLayoutDescription() = 0;
+        virtual std::shared_ptr<GFXImage> CreateImage() = 0;
+
+        virtual std::shared_ptr<GFXTexture2D> CreateTexture2DFromMemory(
+            const uint8_t* data, int32_t length,
+            bool enableReadWrite = false, GFXTextureFormat format = GFXTextureFormat::R8G8B8A8_SRGB) = 0;
+
         virtual intptr_t GetWindowHandle() = 0;
     protected:
         GFXApplication() {}

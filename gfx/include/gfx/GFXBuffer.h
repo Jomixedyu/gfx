@@ -8,7 +8,12 @@ namespace gfx
         Index,
         ConstantBuffer,
     };
-
+    enum class GFXBufferStorageState
+    {
+        Default,
+        Staging,
+        GpuLocal,
+    };
     class GFXBuffer
     {
     public:
