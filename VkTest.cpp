@@ -93,7 +93,7 @@ public:
         gfxapp = static_cast<gfx::GFXVulkanApplication*>(gfx::CreateGFXApplication(gfx::GFXApi::Vulkan, config));
         gfxapp->Initialize();
 
-        createDescriptorSetLayout();
+        createDescriptorSetLayout(); 
         createGraphicsPipeline();
 
         {
@@ -226,7 +226,6 @@ private:
     VkDescriptorSetLayout descriptorSetLayout;
 
     std::vector<VkDescriptorSet> descriptorSets;
-
 
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
