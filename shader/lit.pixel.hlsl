@@ -1,9 +1,9 @@
 #include "Common.inc.hlsl"
 
-[[vk::combinedImageSampler]][[vk::binding(1)]]
-Texture2D texture1;
-[[vk::combinedImageSampler]][[vk::binding(1)]]
-SamplerState state;
+
+
+VK_SAMPLER(1) Texture2D texture1 : register(t1);
+VK_SAMPLER(1) SamplerState state : register(s1);
 
 OutPixelAssembly main(InPixelAssembly v2f)
 {

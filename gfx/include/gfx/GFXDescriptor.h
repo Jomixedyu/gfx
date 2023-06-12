@@ -2,8 +2,8 @@
 
 namespace gfx
 {
-    class GFXDescriptor
-    {
+    //class GFXDescriptor
+    //{
 
-    };
+    //};
 }

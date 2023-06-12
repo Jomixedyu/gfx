@@ -38,12 +38,13 @@
 #include <GFXVulkanBuffer.h>
 #include <GFXVulkanVertexLayoutDescription .h>
 #include <GFXVulkanTexture2D.h>
-
+#include <GFXVulkanDescriptorSet.h>
 #include <chrono>
 #include <BufferHelper.h>
 #include <VulkanShaderModule.h>
 #include "VertexData.h"
 #include "IOHelper.hpp"
+#include <gfx/GFXDescriptorSet.h>
 
 #define VULKAN_REVERT_VIEWPORT 1
 
@@ -93,7 +94,13 @@ public:
         gfxapp = static_cast<gfx::GFXVulkanApplication*>(gfx::CreateGFXApplication(gfx::GFXApi::Vulkan, config));
         gfxapp->Initialize();
 
-        createDescriptorSetLayout(); 
+        descriptorSetLayout = new gfx::GFXVulkanDescriptorSetLayout(
+            gfxapp,
+            {
+                {uint32_t(0), gfx::GFXDescriptorType::ConstantBuffer, gfx::GFXShaderStage::Vertex},
+                {uint32_t(1), gfx::GFXDescriptorType::CombinedImageSampler, gfx::GFXShaderStage::Fragment}
+            });
+
         createGraphicsPipeline();
 
         {
@@ -112,6 +119,7 @@ public:
         uniformBuffers.push_back((gfx::GFXVulkanBuffer*)gfxapp->CreateBuffer(gfx::GFXBufferUsage::ConstantBuffer, sizeof(UniformBufferObject)));
 
         createDescriptorSets();
+
         createSyncObjects();
 
         gfxapp->OnLoop = [this](float dt)
@@ -133,99 +141,91 @@ public:
 
     void createDescriptorSets()
     {
+        //gfx::GFXVulkanDescriptorSet set(gfxapp, descriptorSetLayout);
 
-        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = gfxapp->GetVkDescriptorPool();;
-        //两个相同布局
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-        allocInfo.pSetLayouts = layouts.data();
+        //std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout->GetVkDescriptorSetLayout());
+        //VkDescriptorSetAllocateInfo allocInfo{};
+        //allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        //allocInfo.descriptorPool = gfxapp->GetVkDescriptorPool();;
+        ////两个相同布局
+        //allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        //allocInfo.pSetLayouts = layouts.data();
 
-        descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+        //descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 
-        //创建两个descriptor set
-        if (vkAllocateDescriptorSets(gfxapp->GetVkDevice(), &allocInfo, descriptorSets.data()) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to allocate descriptor sets!");
-        }
+        
+        auto set0 = descriptorSetLayout->CreateVkDescriptorSet();
+        set0->AddDescriptor(0)->SetConstantBuffer(sizeof(UniformBufferObject), uniformBuffers[0]);
+        set0->AddDescriptor(1)->SetTextureSampler2D(textureImage.get());
 
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-        {
-            //引用对应的两个ubo
-            VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = uniformBuffers[i]->GetVkBuffer();
-            bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(UniformBufferObject);
+        auto set1 = descriptorSetLayout->CreateVkDescriptorSet();
+        set1->AddDescriptor(0)->SetConstantBuffer(sizeof(UniformBufferObject), uniformBuffers[1]);
+        set1->AddDescriptor(1)->SetTextureSampler2D(textureImage.get());
 
-            VkDescriptorImageInfo imageInfo{};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = textureImage->GetVkImageView();
-            imageInfo.sampler = textureImage->GetVkSampler();
+        auto set2 = descriptorSetLayout->CreateVkDescriptorSet();
 
-            //重新配置关联descriptor set和buffer引用
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        set0->Submit();
+        set1->Submit();
+        descriptorSets.push_back(set0);
+        descriptorSets.push_back(set1);
 
-            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = descriptorSets[i];
-            descriptorWrites[0].dstBinding = 0;
-            descriptorWrites[0].dstArrayElement = 0;
-            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &bufferInfo;
+        ////创建两个descriptor set
+        //if (vkAllocateDescriptorSets(gfxapp->GetVkDevice(), &allocInfo, descriptorSets.data()) != VK_SUCCESS)
+        //{
+        //    throw std::runtime_error("failed to allocate descriptor sets!");
+        //}
 
-            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = descriptorSets[i];
-            descriptorWrites[1].dstBinding = 1;
-            descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pImageInfo = &imageInfo;
+        //for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        //{
+        //    //引用对应的两个ubo
+        //    VkDescriptorBufferInfo bufferInfo{};
+        //    bufferInfo.buffer = uniformBuffers[i]->GetVkBuffer();
+        //    bufferInfo.offset = 0;
+        //    bufferInfo.range = sizeof(UniformBufferObject);
 
-            vkUpdateDescriptorSets(gfxapp->GetVkDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-            //vkUpdateDescriptorSets(gfxapp->GetVkDevice(), 1, &descriptorWrite, 0, nullptr);
+        //    VkDescriptorImageInfo imageInfo{};
+        //    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        //    imageInfo.imageView = textureImage->GetVkImageView();
+        //    imageInfo.sampler = textureImage->GetVkSampler();
 
-        }
+        //    //重新配置关联descriptor set和buffer引用
+        //    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+        //    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        //    descriptorWrites[0].dstSet = descriptorSets[i];
+        //    descriptorWrites[0].dstBinding = 0;
+        //    descriptorWrites[0].dstArrayElement = 0;
+        //    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        //    descriptorWrites[0].descriptorCount = 1;
+        //    descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+        //    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        //    descriptorWrites[1].dstSet = descriptorSets[i];
+        //    descriptorWrites[1].dstBinding = 1;
+        //    descriptorWrites[1].dstArrayElement = 0;
+        //    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        //    descriptorWrites[1].descriptorCount = 1;
+        //    descriptorWrites[1].pImageInfo = &imageInfo;
+
+        //    vkUpdateDescriptorSets(gfxapp->GetVkDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        //    //vkUpdateDescriptorSets(gfxapp->GetVkDevice(), 1, &descriptorWrite, 0, nullptr);
+
+        //}
 
     }
-    //绑定位置为0的顶点着色器布局的ubo
-    void createDescriptorSetLayout()
-    {
-        VkDescriptorSetLayoutBinding uboLayoutBinding{};
-        uboLayoutBinding.binding = 0;
-        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uboLayoutBinding.descriptorCount = 1;
-        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
 
-        VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-        samplerLayoutBinding.binding = 1;
-        samplerLayoutBinding.descriptorCount = 1;
-        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        samplerLayoutBinding.pImmutableSamplers = nullptr;
-        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-        layoutInfo.pBindings = bindings.data();
-
-        if (vkCreateDescriptorSetLayout(gfxapp->GetVkDevice(), &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create descriptor set layout!");
-        }
-    }
 private:
 
     gfx::GFXVulkanApplication* gfxapp;
     gfx::GFXBuffer* vertexBuffer;
     gfx::GFXVulkanBuffer* indexBuffer;
 
-    VkDescriptorSetLayout descriptorSetLayout;
+    //VkDescriptorSetLayout descriptorSetLayout;
+    gfx::GFXVulkanDescriptorSetLayout* descriptorSetLayout;
+    std::vector<std::shared_ptr<gfx::GFXVulkanDescriptorSet>> descriptorSets;
 
-    std::vector<VkDescriptorSet> descriptorSets;
+    //std::vector<VkDescriptorSet> descriptorSets;
 
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
@@ -286,9 +286,9 @@ private:
 
         textureImage.reset();
 
-
-        vkDestroyDescriptorSetLayout(gfxapp->GetVkDevice(), descriptorSetLayout, nullptr);
-
+        delete descriptorSetLayout;
+        
+        descriptorSets.clear();
 
         vkDestroyPipeline(gfxapp->GetVkDevice(), graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(gfxapp->GetVkDevice(), pipelineLayout, nullptr);
@@ -379,7 +379,7 @@ private:
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout->GetVkDescriptorSetLayout();
         pipelineLayoutInfo.pushConstantRangeCount = 0;
 
         if (vkCreatePipelineLayout(gfxapp->GetVkDevice(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
@@ -481,7 +481,8 @@ private:
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
             vkCmdBindIndexBuffer(commandBuffer, indexBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT16);
             //vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+            auto descriptorSet = descriptorSets[currentFrame]->GetVkDescriptorSet();
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
             vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
         }
         vkCmdEndRenderPass(commandBuffer);

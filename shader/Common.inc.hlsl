@@ -1,3 +1,4 @@
+#define VK_SAMPLER(index) [[vk::combinedImageSampler]][[vk::binding(index)]]
 
 struct InVertexAssembly
 {

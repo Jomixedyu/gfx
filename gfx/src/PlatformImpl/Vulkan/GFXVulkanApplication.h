@@ -26,6 +26,8 @@ namespace gfx
         virtual void RequestStop() override;
         virtual void Terminate() override;
 
+        //bool 
+
         virtual GFXBuffer* CreateBuffer(GFXBufferUsage usage, size_t bufferSize) override;
         virtual std::shared_ptr<GFXCommandBuffer> CreateCommandBuffer() override;
         virtual std::shared_ptr<GFXVertexLayoutDescription> CreateVertexLayoutDescription() override;
