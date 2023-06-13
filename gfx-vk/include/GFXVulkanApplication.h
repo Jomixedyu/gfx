@@ -5,8 +5,8 @@
 
 #define GLFW_INCLUDE_VULKAN
 #define GLFW_EXPOSE_NATIVE_WIN32
-#include <gfx/GFXThirdParty/glfw/include/GLFW/glfw3.h>
-#include <gfx/GFXThirdParty/glfw/include/GLFW/glfw3native.h>
+#include <glfw/include/GLFW/glfw3.h>
+#include <glfw/include/GLFW/glfw3native.h>
 
 
 namespace gfx
@@ -83,7 +83,7 @@ namespace gfx
 
         VkInstance m_instance;
         VkSurfaceKHR m_surface;
-        VkDebugUtilsMessengerEXT m_debugMessenger;
+        VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
         VkCommandPool m_commandPool;
 
         VkImage m_depthImage = VK_NULL_HANDLE;

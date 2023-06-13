@@ -1,9 +1,5 @@
 #include "GFXVulkanApplication.h"
-#include "GFXVulkanApplication.h"
-#include "GFXVulkanApplication.h"
-#include "GFXVulkanApplication.h"
-#include "GFXVulkanApplication.h"
-#include <gfx/GFXThirdParty/glfw/include/GLFW/glfw3.h>
+#include <glfw/include/GLFW/glfw3.h>
 #include <stdexcept>
 #include <iostream>
 #include "PhysicalDeviceHelper.h"
@@ -180,13 +176,19 @@ namespace gfx
 
         createInfo.pfnUserCallback = _VkDebugCallback;
     }
-    static VkResult _CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+    static VkResult _CreateDebugUtilsMessengerEXT(
+        VkInstance instance, 
+        const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
+        const VkAllocationCallbacks* pAllocator, 
+        VkDebugUtilsMessengerEXT* pDebugMessenger)
     {
         auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-        if (func != nullptr) {
+        if (func != nullptr)
+        {
             return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
         }
-        else {
+        else
+        {
             return VK_ERROR_EXTENSION_NOT_PRESENT;
         }
     }
@@ -204,7 +206,7 @@ namespace gfx
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = m_config.ProgramName;
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_3;
+        appInfo.apiVersion = VK_API_VERSION_1_2;
 
         VkInstanceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -300,11 +302,13 @@ namespace gfx
 
         createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
         createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
+        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
         if (m_config.EnableValid)
         {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();
+            _PopulateDebugMessengerCreateInfo(debugCreateInfo);
+            //createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
         }
         else
         {
@@ -692,7 +696,7 @@ namespace gfx
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = 0;
         poolInfo.pPoolSizes = poolSize;
-        poolInfo.maxSets = static_cast<uint32_t>(2);
+        poolInfo.maxSets = static_cast<uint32_t>(128);
         poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
         if (vkCreateDescriptorPool(GetVkDevice(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS)
@@ -717,13 +721,13 @@ namespace gfx
         // setup debuger
         if (m_config.EnableValid)
         {
-            VkDebugUtilsMessengerCreateInfoEXT createInfo;
+            VkDebugUtilsMessengerCreateInfoEXT createInfo{};
             _PopulateDebugMessengerCreateInfo(createInfo);
 
-            if (_CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger) != VK_SUCCESS) 
-            {
-                throw std::runtime_error("failed to set up debug messenger!");
-            }
+            //if (_CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger) != VK_SUCCESS) 
+            //{
+            //    throw std::runtime_error("failed to set up debug messenger!");
+            //}
         }
         // create surface
         if (glfwCreateWindowSurface(m_instance, reinterpret_cast<GLFWwindow*>(m_window), nullptr, &m_surface) != VK_SUCCESS)
@@ -791,7 +795,7 @@ namespace gfx
         if (m_config.EnableValid)
         {
             auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT");
-            if (func != nullptr)
+            if (func != nullptr && m_debugMessenger != VK_NULL_HANDLE)
             {
                 func(m_instance, m_debugMessenger, nullptr);
             }

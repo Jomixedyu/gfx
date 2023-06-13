@@ -54,7 +54,4 @@ namespace gfx
         GFXGlobalConfig m_config{};
     };
 
-
-
-    GFXApplication* CreateGFXApplication(GFXApi Api, GFXGlobalConfig config);
 }

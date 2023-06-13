@@ -1,5 +1,7 @@
 #include "BufferHelper.h"
 #include "GFXVulkanCommandBuffer.h"
+#include <gfx/GFXCommandBufferScope.h>
+
 #include <stdexcept>
 
 namespace gfx

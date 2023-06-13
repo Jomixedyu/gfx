@@ -4,8 +4,8 @@
 #include <vulkan/vulkan.h>
 //#include <vulkan/vulkan_win32.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
-#include <gfx/GFXThirdParty/glfw/include/GLFW/glfw3.h>
-#include <gfx/GFXThirdParty/glfw/include/GLFW/glfw3native.h>
+#include <gfx-vk/GFXThirdParty/glfw/include/GLFW/glfw3.h>
+#include <gfx-vk/GFXThirdParty/glfw/include/GLFW/glfw3native.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -14,6 +14,7 @@
 #undef min
 
 #include <gfx/GFXDefined.h>
+#include <gfx/GFXCommandBufferScope.h>
 
 #include <iostream>
 #include <fstream>
@@ -90,8 +91,8 @@ public:
         config.WindowWidth = 1280;
         strcpy(config.Title, "Puslar");
         strcpy(config.ProgramName, "Puslar");
-
-        gfxapp = static_cast<gfx::GFXVulkanApplication*>(gfx::CreateGFXApplication(gfx::GFXApi::Vulkan, config));
+        
+        gfxapp = new gfx::GFXVulkanApplication(config);
         gfxapp->Initialize();
 
         descriptorSetLayout = new gfx::GFXVulkanDescriptorSetLayout(
@@ -340,6 +341,7 @@ private:
         rasterizer.depthClampEnable = VK_FALSE;
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+        //rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
         rasterizer.lineWidth = 1.0f;
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
         //rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT;

@@ -17,10 +17,11 @@ namespace gfx
     class GFXBuffer
     {
     public:
-        GFXBuffer(GFXBufferUsage usage, size_t bufferSize);
+        GFXBuffer(GFXBufferUsage usage, size_t bufferSize)
+            : m_usage(usage), m_bufferSize(bufferSize) {}
         GFXBuffer(const GFXBuffer&) = delete;
         GFXBuffer(GFXBuffer&&) = delete;
-        virtual ~GFXBuffer();
+        virtual ~GFXBuffer() {}
     public:
         virtual void Fill(const void* data) = 0;
         virtual void Release() = 0;

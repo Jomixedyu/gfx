@@ -8,6 +8,22 @@
 
 namespace gfx
 {
+    static std::unordered_map<VkDescriptorType, float> DefaultPoolSizes
+    {
+        { VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER, 2 },
+        { VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2 },
+        { VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 2 },
+        { VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 / 8.0f },
+        { VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1 / 2.0f },
+        { VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1 / 8.0f },
+        { VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 / 4.0f },
+        { VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 / 8.0f },
+        { VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 4 },
+        { VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1 / 8.0f },
+        { VkDescriptorType::VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1 / 8.0f },
+
+    };
+
 
     static VkDescriptorType _GetDescriptorType(GFXDescriptorType type)
     {
