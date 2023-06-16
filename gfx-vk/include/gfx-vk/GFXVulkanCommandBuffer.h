@@ -19,6 +19,14 @@ namespace gfx
         virtual void Begin() override;
         virtual void End() override;
 
+
+        virtual void CmdClear(float r, float g, float b, float a, bool depth, bool stencil) override;
+        virtual void CmdBindPipeline(GFXGraphicsPipeline* pipeline) override;
+        virtual void CmdBindVertexBuffers() override;
+        virtual void CmdBindIndexBuffer() override;
+        virtual void CmdBindDescriptorSets() override;
+        virtual void CmdDrawIndexed() override;
+
     public:
         virtual GFXApplication* GetApplication() const override
         {

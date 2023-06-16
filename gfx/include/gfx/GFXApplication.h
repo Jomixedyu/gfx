@@ -7,9 +7,12 @@
 #include "GFXTexture2D.h"
 #include "GFXVertexLayoutDescription.h"
 #include "GFXImage.h"
-
+#include "GFXDescriptorManager.h"
+#include "GFXShaderModule.h"
+#include "GFXGraphicsPipeline.h"
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace gfx
 {
@@ -24,6 +27,7 @@ namespace gfx
     {
     public:
         using LoopEvent = std::function<void(float)>;
+
         //using LoopEvent = void(*)(GFXApplication*, float);
         using ExitWindowEvent = bool(*)();
     public:
@@ -42,6 +46,14 @@ namespace gfx
         virtual std::shared_ptr<GFXCommandBuffer> CreateCommandBuffer() = 0;
         virtual std::shared_ptr<GFXVertexLayoutDescription> CreateVertexLayoutDescription() = 0;
         virtual std::shared_ptr<GFXImage> CreateImage() = 0;
+        virtual std::shared_ptr<GFXShaderModule> CreateShaderModule(const std::vector<uint8_t>& vert, const std::vector<uint8_t>& frag) = 0;
+        virtual GFXDescriptorManager* GetDescriptorManager() = 0;
+
+        virtual std::shared_ptr<GFXGraphicsPipeline> CreateGraphicsPipeline(
+            const GFXGraphicsPipelineConfig& config,
+            std::shared_ptr<GFXVertexLayoutDescription> VertexLayout,
+            std::shared_ptr<GFXShaderModule> ShaderModule,
+            const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout) = 0;
 
         virtual std::shared_ptr<GFXTexture2D> CreateTexture2DFromMemory(
             const uint8_t* data, int32_t length,

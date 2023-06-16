@@ -1,4 +1,4 @@
-#include "GFXVulkanVertexLayoutDescription .h"
+#include <gfx-vk/GFXVulkanVertexLayoutDescription.h>
 #include <unordered_map>
 #include <cassert>
 

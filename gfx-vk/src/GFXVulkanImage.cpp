@@ -1,4 +1,4 @@
-#include "GFXVulkanImage.h"
+#include <gfx-vk/GFXVulkanImage.h>
 
 namespace gfx
 {

@@ -56,6 +56,7 @@ namespace gfx
         GFXDescriptorSet() {}
         virtual ~GFXDescriptorSet() {}
     public:
-
+        virtual GFXDescriptor* AddDescriptor(uint32_t bindingPoint) = 0;
+        virtual void Submit() = 0;
     };
 }

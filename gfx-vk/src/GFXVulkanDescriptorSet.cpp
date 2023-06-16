@@ -1,8 +1,8 @@
-#include "GFXVulkanDescriptorSet.h"
-#include "GFXVulkanDescriptorSet.h"
-#include "GFXVulkanApplication.h"
-#include "GFXVulkanBuffer.h"
-#include "GFXVulkanTexture2D.h"
+#include <gfx-vk/GFXVulkanDescriptorSet.h>
+#include <gfx-vk/GFXVulkanApplication.h>
+#include <gfx-vk/GFXVulkanBuffer.h>
+#include <gfx-vk/GFXVulkanTexture2D.h>
+#include <gfx-vk/GFXVulkanDescriptorPool.h>
 #include <cassert>
 #include <stdexcept>
 
@@ -21,7 +21,6 @@ namespace gfx
         { VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 4 },
         { VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1 / 8.0f },
         { VkDescriptorType::VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1 / 8.0f },
-
     };
 
 
@@ -82,11 +81,6 @@ namespace gfx
         }
     }
 
-    std::shared_ptr<GFXVulkanDescriptorSet> GFXVulkanDescriptorSetLayout::CreateVkDescriptorSet()
-    {
-        return std::shared_ptr<GFXVulkanDescriptorSet>(new GFXVulkanDescriptorSet(m_app, this));
-    }
-
 
     void GFXVulkanDescriptor::SetConstantBuffer(size_t size, GFXBuffer* buffer)
     {
@@ -124,44 +118,35 @@ namespace gfx
     }
 
 
-    GFXVulkanDescriptorSet::GFXVulkanDescriptorSet(GFXVulkanApplication* app, GFXDescriptorSetLayout* layout)
-        : m_app(app)
+    GFXVulkanDescriptorSet::GFXVulkanDescriptorSet(GFXVulkanDescriptorPool* pool, GFXDescriptorSetLayout* layout)
+        : m_pool(pool)
     {
         m_setlayout = static_cast<GFXVulkanDescriptorSetLayout*>(layout);
 
-        auto VkSetLayout = m_setlayout->GetVkDescriptorSetLayout();
-
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = app->GetVkDescriptorPool();
+        allocInfo.descriptorPool = pool->GetVkDescriptorPool();
         allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &VkSetLayout;
+        allocInfo.pSetLayouts = &m_setlayout->GetVkDescriptorSetLayout();
 
-
-        auto result = vkAllocateDescriptorSets(app->GetVkDevice(), &allocInfo, &m_descriptorSet);
-        bool a = result == VK_ERROR_OUT_OF_POOL_MEMORY;
-        if (result != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to allocate descriptor sets!");
-        }
+        auto result = vkAllocateDescriptorSets(pool->GetApplication()->GetVkDevice(), &allocInfo, &m_descriptorSet);
+        assert(result == VK_SUCCESS);
     }
 
     GFXVulkanDescriptorSet::~GFXVulkanDescriptorSet()
     {
-
-        if (m_descriptorSet != VK_NULL_HANDLE)
-        {
-            vkFreeDescriptorSets(m_app->GetVkDevice(), m_app->GetVkDescriptorPool(), 1, &m_descriptorSet);
-            m_descriptorSet = VK_NULL_HANDLE;
-        }
+        vkFreeDescriptorSets(this->GetApplication()->GetVkDevice(), m_pool->GetVkDescriptorPool(), 1, &m_descriptorSet);
+        m_descriptorSet = VK_NULL_HANDLE;
+        m_pool->ReleaseDescriptorSet();
     }
 
-    GFXVulkanDescriptor* GFXVulkanDescriptorSet::AddDescriptor(uint32_t bindingPoint)
+    GFXDescriptor* GFXVulkanDescriptorSet::AddDescriptor(uint32_t bindingPoint)
     {
         auto descriptor = new GFXVulkanDescriptor(this, bindingPoint);
         m_descriptors.push_back(descriptor);
         return descriptor;
     }
+
     void GFXVulkanDescriptorSet::Submit()
     {
         std::vector<VkWriteDescriptorSet> writeInfos;
@@ -169,7 +154,12 @@ namespace gfx
         {
             writeInfos.push_back(descriptor->WriteInfo);
         }
-        vkUpdateDescriptorSets(m_app->GetVkDevice(), writeInfos.size(), writeInfos.data(), 0, nullptr);
+        vkUpdateDescriptorSets(m_pool->GetApplication()->GetVkDevice(), writeInfos.size(), writeInfos.data(), 0, nullptr);
+    }
+
+    GFXVulkanApplication* GFXVulkanDescriptorSet::GetApplication() const
+    {
+        return m_pool->GetApplication();
     }
 
 

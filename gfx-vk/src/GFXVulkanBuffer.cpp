@@ -1,8 +1,8 @@
-#include "GFXVulkanBuffer.h"
-#include "GFXVulkanApplication.h"
+#include <gfx-vk/GFXVulkanBuffer.h>
+#include <gfx-vk/GFXVulkanApplication.h>
+#include <gfx-vk/BufferHelper.h>
 #include <cassert>
 #include <stdexcept>
-#include "BufferHelper.h"
 
 namespace gfx
 {

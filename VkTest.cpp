@@ -15,7 +15,8 @@
 
 #include <gfx/GFXDefined.h>
 #include <gfx/GFXCommandBufferScope.h>
-
+#include <gfx/GFXShaderModule.h>
+#include <gfx/GFXGraphicsPipeline.h>
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
@@ -33,16 +34,17 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <GFXVulkanCommandBuffer.h>
+#include <gfx-vk/GFXVulkanCommandBuffer.h>
 #include <gfx/GFXApplication.h>
-#include <GFXVulkanApplication.h>
-#include <GFXVulkanBuffer.h>
-#include <GFXVulkanVertexLayoutDescription .h>
-#include <GFXVulkanTexture2D.h>
-#include <GFXVulkanDescriptorSet.h>
+#include <gfx-vk/GFXVulkanApplication.h>
+#include <gfx-vk/GFXVulkanBuffer.h>
+#include <gfx-vk/GFXVulkanVertexLayoutDescription.h>
+#include <gfx-vk/GFXVulkanTexture2D.h>
+#include <gfx-vk/GFXVulkanDescriptorSet.h>
+#include <gfx-vk/GFXVulkanGraphicsPipeline.h>
 #include <chrono>
-#include <BufferHelper.h>
-#include <VulkanShaderModule.h>
+#include <gfx-vk/BufferHelper.h>
+#include <gfx-vk/GFXVulkanShaderModule.h>
 #include "VertexData.h"
 #include "IOHelper.hpp"
 #include <gfx/GFXDescriptorSet.h>
@@ -89,20 +91,38 @@ public:
         gfx::GFXGlobalConfig config;
         config.WindowHeight = 720;
         config.WindowWidth = 1280;
-        strcpy(config.Title, "Puslar");
+        strcpy(config.Title, "Puslar Editor v0.1.0 - Vulkan 1.1");
         strcpy(config.ProgramName, "Puslar");
         
         gfxapp = new gfx::GFXVulkanApplication(config);
         gfxapp->Initialize();
 
-        descriptorSetLayout = new gfx::GFXVulkanDescriptorSetLayout(
+        descriptorSetLayout = std::shared_ptr<gfx::GFXVulkanDescriptorSetLayout>(new gfx::GFXVulkanDescriptorSetLayout(
             gfxapp,
             {
                 {uint32_t(0), gfx::GFXDescriptorType::ConstantBuffer, gfx::GFXShaderStage::Vertex},
                 {uint32_t(1), gfx::GFXDescriptorType::CombinedImageSampler, gfx::GFXShaderStage::Fragment}
-            });
+            }));
 
-        createGraphicsPipeline();
+        {
+            auto vertShaderCode = IOHelper::ReadFile("shader/lit.vert.spv");
+            auto fragShaderCode = IOHelper::ReadFile("shader/lit.pixel.spv");
+
+            auto shaderModule = gfxapp->CreateShaderModule(vertShaderCode, fragShaderCode);
+            gfx::GFXGraphicsPipelineConfig cfg;
+            {
+                cfg.CullMode = gfx::GFXCullMode::Back;
+                cfg.DepthTestEnable = true;
+                cfg.DepthWriteEnable = true;
+                cfg.DepthCompareOp = gfx::GFXCompareMode::Less;
+            }
+
+            pipeline = std::static_pointer_cast<gfx::GFXVulkanGraphicsPipeline> 
+                (gfxapp->CreateGraphicsPipeline(cfg, gfx::GetBindingDescription(gfxapp), shaderModule, descriptorSetLayout));
+            
+
+        }
+
 
         {
             auto texbuf = IOHelper::ReadFile("textures/texture.png");
@@ -116,10 +136,26 @@ public:
         indexBuffer = (gfx::GFXVulkanBuffer*)gfxapp->CreateBuffer(gfx::GFXBufferUsage::Index, sizeof(indices[0]) * indices.size());
         indexBuffer->Fill(indices.data());
 
-        uniformBuffers.push_back((gfx::GFXVulkanBuffer*)gfxapp->CreateBuffer(gfx::GFXBufferUsage::ConstantBuffer, sizeof(UniformBufferObject)));
-        uniformBuffers.push_back((gfx::GFXVulkanBuffer*)gfxapp->CreateBuffer(gfx::GFXBufferUsage::ConstantBuffer, sizeof(UniformBufferObject)));
+        uniformBuffers = (gfx::GFXVulkanBuffer*)gfxapp->CreateBuffer(gfx::GFXBufferUsage::ConstantBuffer, sizeof(UniformBufferObject));
+        //uniformBuffers.push_back((gfx::GFXVulkanBuffer*)gfxapp->CreateBuffer(gfx::GFXBufferUsage::ConstantBuffer, sizeof(UniformBufferObject)));
 
-        createDescriptorSets();
+        //create descriptor set
+        {
+            auto set0 = gfxapp->GetDescriptorManager()->GetDescriptorSet(descriptorSetLayout.get());
+            set0->AddDescriptor(0)->SetConstantBuffer(sizeof(UniformBufferObject), uniformBuffers);
+            set0->AddDescriptor(1)->SetTextureSampler2D(textureImage.get());
+
+            auto set1 = gfxapp->GetDescriptorManager()->GetDescriptorSet(descriptorSetLayout.get());
+            set1->AddDescriptor(0)->SetConstantBuffer(sizeof(UniformBufferObject), uniformBuffers);
+            set1->AddDescriptor(1)->SetTextureSampler2D(textureImage.get());
+
+            set0->Submit();
+            set1->Submit();
+            descriptorSets.push_back(std::static_pointer_cast<gfx::GFXVulkanDescriptorSet>(set0));
+            //descriptorSets.push_back(std::static_pointer_cast<gfx::GFXVulkanDescriptorSet>(set1));
+        }
+
+
 
         createSyncObjects();
 
@@ -140,80 +176,6 @@ public:
         return static_cast<gfx::GFXVulkanCommandBuffer*>(scope.operator->())->GetVkCommandBuffer();
     }
 
-    void createDescriptorSets()
-    {
-        //gfx::GFXVulkanDescriptorSet set(gfxapp, descriptorSetLayout);
-
-        //std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout->GetVkDescriptorSetLayout());
-        //VkDescriptorSetAllocateInfo allocInfo{};
-        //allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        //allocInfo.descriptorPool = gfxapp->GetVkDescriptorPool();;
-        ////两个相同布局
-        //allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-        //allocInfo.pSetLayouts = layouts.data();
-
-        //descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-
-        
-        auto set0 = descriptorSetLayout->CreateVkDescriptorSet();
-        set0->AddDescriptor(0)->SetConstantBuffer(sizeof(UniformBufferObject), uniformBuffers[0]);
-        set0->AddDescriptor(1)->SetTextureSampler2D(textureImage.get());
-
-        auto set1 = descriptorSetLayout->CreateVkDescriptorSet();
-        set1->AddDescriptor(0)->SetConstantBuffer(sizeof(UniformBufferObject), uniformBuffers[1]);
-        set1->AddDescriptor(1)->SetTextureSampler2D(textureImage.get());
-
-        auto set2 = descriptorSetLayout->CreateVkDescriptorSet();
-
-        set0->Submit();
-        set1->Submit();
-        descriptorSets.push_back(set0);
-        descriptorSets.push_back(set1);
-
-        ////创建两个descriptor set
-        //if (vkAllocateDescriptorSets(gfxapp->GetVkDevice(), &allocInfo, descriptorSets.data()) != VK_SUCCESS)
-        //{
-        //    throw std::runtime_error("failed to allocate descriptor sets!");
-        //}
-
-        //for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-        //{
-        //    //引用对应的两个ubo
-        //    VkDescriptorBufferInfo bufferInfo{};
-        //    bufferInfo.buffer = uniformBuffers[i]->GetVkBuffer();
-        //    bufferInfo.offset = 0;
-        //    bufferInfo.range = sizeof(UniformBufferObject);
-
-        //    VkDescriptorImageInfo imageInfo{};
-        //    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        //    imageInfo.imageView = textureImage->GetVkImageView();
-        //    imageInfo.sampler = textureImage->GetVkSampler();
-
-        //    //重新配置关联descriptor set和buffer引用
-        //    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-
-        //    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        //    descriptorWrites[0].dstSet = descriptorSets[i];
-        //    descriptorWrites[0].dstBinding = 0;
-        //    descriptorWrites[0].dstArrayElement = 0;
-        //    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        //    descriptorWrites[0].descriptorCount = 1;
-        //    descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-        //    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        //    descriptorWrites[1].dstSet = descriptorSets[i];
-        //    descriptorWrites[1].dstBinding = 1;
-        //    descriptorWrites[1].dstArrayElement = 0;
-        //    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        //    descriptorWrites[1].descriptorCount = 1;
-        //    descriptorWrites[1].pImageInfo = &imageInfo;
-
-        //    vkUpdateDescriptorSets(gfxapp->GetVkDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-        //    //vkUpdateDescriptorSets(gfxapp->GetVkDevice(), 1, &descriptorWrite, 0, nullptr);
-
-        //}
-
-    }
 
 
 private:
@@ -222,16 +184,12 @@ private:
     gfx::GFXBuffer* vertexBuffer;
     gfx::GFXVulkanBuffer* indexBuffer;
 
-    //VkDescriptorSetLayout descriptorSetLayout;
-    gfx::GFXVulkanDescriptorSetLayout* descriptorSetLayout;
+    std::shared_ptr<gfx::GFXVulkanDescriptorSetLayout> descriptorSetLayout;
     std::vector<std::shared_ptr<gfx::GFXVulkanDescriptorSet>> descriptorSets;
 
-    //std::vector<VkDescriptorSet> descriptorSets;
+    std::shared_ptr<gfx::GFXVulkanGraphicsPipeline> pipeline;
 
-    VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
-
-    std::vector<gfx::GFXVulkanBuffer*> uniformBuffers;
+    gfx::GFXVulkanBuffer* uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     std::vector<void*> uniformBuffersMapped;
 
@@ -239,8 +197,8 @@ private:
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
-    uint32_t currentFrame = 0;
     bool framebufferResized = false;
+    uint32_t currentFrame = 0;
 
 
 
@@ -258,7 +216,8 @@ private:
 
         int width = 0, height = 0;
         glfwGetFramebufferSize(reinterpret_cast<GLFWwindow*>(gfxapp->GetWindowHandle()), &width, &height);
-        while (width == 0 || height == 0) {
+        while (width == 0 || height == 0)
+        {
             glfwGetFramebufferSize(reinterpret_cast<GLFWwindow*>(gfxapp->GetWindowHandle()), &width, &height);
             glfwWaitEvents();
         }
@@ -275,24 +234,21 @@ private:
 
     void cleanup() {
 
-        cleanupSwapChain();
-
         vertexBuffer->Release();
         indexBuffer->Release();
-        for (auto& uniformBuffer : uniformBuffers)
+        /*for (auto& uniformBuffer : uniformBuffers)
         {
             uniformBuffer->Release();
-        }
-
+        }*/
+        delete uniformBuffers;
 
         textureImage.reset();
 
-        delete descriptorSetLayout;
-        
+        descriptorSetLayout.reset();
         descriptorSets.clear();
 
-        vkDestroyPipeline(gfxapp->GetVkDevice(), graphicsPipeline, nullptr);
-        vkDestroyPipelineLayout(gfxapp->GetVkDevice(), pipelineLayout, nullptr);
+        pipeline.reset();
+
         vkDestroyRenderPass(gfxapp->GetVkDevice(), gfxapp->GetVkRenderPass(), nullptr);
 
         /*vkDestroyCommandPool(gfxapp->GetVkDevice(), gfxapp->GetVkCommandPool(), nullptr);*/
@@ -306,127 +262,8 @@ private:
     }
 
 
-    void createGraphicsPipeline() {
-
-        auto vertShaderCode = IOHelper::ReadFile("shader/lit.vert.spv");
-        auto fragShaderCode = IOHelper::ReadFile("shader/lit.pixel.spv");
-
-        gfx::VulkanShaderModule shaderModule{ gfxapp, (uint8_t*)vertShaderCode.data(), vertShaderCode.size(), (uint8_t*)fragShaderCode.data(), fragShaderCode.size() };
-
-        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-        auto vertBinding = std::static_pointer_cast<gfx::GFXVulkanVertexLayoutDescription>(gfx::GetBindingDescription(gfxapp));
-
-        auto bindingDescription = vertBinding->GetVkBindingDescription();
-        auto attributeDescriptions = vertBinding->GetVkAttributeDescriptions();
-
-        vertexInputInfo.vertexBindingDescriptionCount = 1;
-        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-
-        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-        VkPipelineViewportStateCreateInfo viewportState{};
-        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewportState.viewportCount = 1;
-        viewportState.scissorCount = 1;
-
-        VkPipelineRasterizationStateCreateInfo rasterizer{};
-        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rasterizer.depthClampEnable = VK_FALSE;
-        rasterizer.rasterizerDiscardEnable = VK_FALSE;
-        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-        //rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
-        rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-        //rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT;
-        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-        //rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-        rasterizer.depthBiasEnable = VK_FALSE;
-
-        VkPipelineMultisampleStateCreateInfo multisampling{};
-        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampling.sampleShadingEnable = VK_FALSE;
-        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment.blendEnable = VK_FALSE;
-
-        VkPipelineColorBlendStateCreateInfo colorBlending{};
-        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        colorBlending.logicOpEnable = VK_FALSE;
-        colorBlending.logicOp = VK_LOGIC_OP_COPY;
-        colorBlending.attachmentCount = 1;
-        colorBlending.pAttachments = &colorBlendAttachment;
-        colorBlending.blendConstants[0] = 0.0f;
-        colorBlending.blendConstants[1] = 0.0f;
-        colorBlending.blendConstants[2] = 0.0f;
-        colorBlending.blendConstants[3] = 0.0f;
-
-        std::vector<VkDynamicState> dynamicStates = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR
-        };
-        VkPipelineDynamicStateCreateInfo dynamicState{};
-        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-        dynamicState.pDynamicStates = dynamicStates.data();
-
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout->GetVkDescriptorSetLayout();
-        pipelineLayoutInfo.pushConstantRangeCount = 0;
-
-        if (vkCreatePipelineLayout(gfxapp->GetVkDevice(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create pipeline layout!");
-        }
-
-        VkPipelineDepthStencilStateCreateInfo depthStencil{};
-        depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencil.depthTestEnable = VK_TRUE;
-        depthStencil.depthWriteEnable = VK_TRUE;
-        depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
-        depthStencil.depthBoundsTestEnable = VK_FALSE;
-        depthStencil.minDepthBounds = 0.0f; // Optional
-        depthStencil.maxDepthBounds = 1.0f; // Optional
-        depthStencil.stencilTestEnable = VK_FALSE;
-        depthStencil.front = {}; // Optional
-        depthStencil.back = {}; // Optional
-
-
-        VkGraphicsPipelineCreateInfo pipelineInfo{};
-        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipelineInfo.stageCount = 2;
-        pipelineInfo.pStages = shaderModule.ShaderStages;
-        pipelineInfo.pVertexInputState = &vertexInputInfo;
-        pipelineInfo.pInputAssemblyState = &inputAssembly;
-        pipelineInfo.pViewportState = &viewportState;
-        pipelineInfo.pRasterizationState = &rasterizer;
-        pipelineInfo.pMultisampleState = &multisampling;
-        pipelineInfo.pColorBlendState = &colorBlending;
-        pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = pipelineLayout;
-        pipelineInfo.renderPass = gfxapp->GetVkRenderPass();
-        pipelineInfo.subpass = 0;
-        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-        pipelineInfo.pDepthStencilState = &depthStencil;
-
-        if (vkCreateGraphicsPipelines(gfxapp->GetVkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create graphics pipeline!");
-        }
-
-    }
-
-
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+    {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -450,7 +287,7 @@ private:
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVkPipeline());
 
             VkViewport viewport{};
 #if VULKAN_REVERT_VIEWPORT
@@ -476,20 +313,21 @@ private:
 
             //vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVkPipeline());
 
             VkBuffer vertexBuffers[] = { static_cast<gfx::GFXVulkanBuffer*>(vertexBuffer)->GetVkBuffer() };
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
             vkCmdBindIndexBuffer(commandBuffer, indexBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT16);
             //vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-            auto descriptorSet = descriptorSets[currentFrame]->GetVkDescriptorSet();
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+            auto descriptorSet = descriptorSets[0]->GetVkDescriptorSet();
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVkPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
             vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
         }
         vkCmdEndRenderPass(commandBuffer);
 
-        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+        {
             throw std::runtime_error("failed to record command buffer!");
         }
     }
@@ -528,12 +366,12 @@ private:
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         UniformBufferObject ubo{};
-        //ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.f));
-        ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.f, 0.f));
+        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.f));
+        //ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.f, 0.f));
         ubo.view = glm::lookAtLH(glm::vec3(0.0f, 2.0f, -2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         ubo.proj = glm::perspectiveLH_ZO(glm::radians(45.0f), gfxapp->GetVkSwapChainExtent().width / (float)gfxapp->GetVkSwapChainExtent().height, 0.1f, 10.0f);
 
-        uniformBuffers[currentImage]->Fill(&ubo);
+        uniformBuffers->Fill(&ubo);
     }
 
     void drawFrame(float)

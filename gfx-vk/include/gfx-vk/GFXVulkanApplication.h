@@ -8,6 +8,7 @@
 #include <glfw/include/GLFW/glfw3.h>
 #include <glfw/include/GLFW/glfw3native.h>
 
+#include <chrono>
 
 namespace gfx
 {
@@ -26,16 +27,22 @@ namespace gfx
         virtual void RequestStop() override;
         virtual void Terminate() override;
 
-        //bool 
-
+        void TickRender(float deltaTime);
         virtual GFXBuffer* CreateBuffer(GFXBufferUsage usage, size_t bufferSize) override;
         virtual std::shared_ptr<GFXCommandBuffer> CreateCommandBuffer() override;
         virtual std::shared_ptr<GFXVertexLayoutDescription> CreateVertexLayoutDescription() override;
         virtual std::shared_ptr<GFXImage> CreateImage() override;
+        virtual std::shared_ptr<GFXShaderModule> CreateShaderModule(const std::vector<uint8_t>& vert, const std::vector<uint8_t>& frag) override;
+        virtual std::shared_ptr<GFXGraphicsPipeline> CreateGraphicsPipeline(
+            const GFXGraphicsPipelineConfig& config,
+            std::shared_ptr<GFXVertexLayoutDescription> VertexLayout,
+            std::shared_ptr<GFXShaderModule> ShaderModule,
+            const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout) override;
 
         virtual std::shared_ptr<GFXTexture2D> CreateTexture2DFromMemory(
             const uint8_t* data, int32_t length,
             bool enableReadWrite = false, GFXTextureFormat format = GFXTextureFormat::R8G8B8A8_SRGB) override;
+        virtual GFXDescriptorManager* GetDescriptorManager() override;
 
         virtual GFXExtensions GetExtensionNames() override;
         virtual intptr_t GetWindowHandle() override;
@@ -51,12 +58,10 @@ namespace gfx
         const VkFormat& GetSwapChainImageFormat() const { return m_swapChainImageFormat; }
         const std::vector<VkImageView>& GetVkSwapchainImageViews() const { return m_swapChainImageViews; }
         const VkExtent2D& GetVkSwapChainExtent() const { return m_swapChainExtent; }
-        const VkRenderPass& GetVkRenderPass() const { return m_renderPass; }
         const std::vector<VkCommandBuffer> GetVkCommandBuffers() const { return m_commandBuffers; }
         const VkCommandBuffer& GetVkCommandBuffer(size_t index) const { return m_commandBuffers[index]; }
         VkImageView GetVkDepthImageView() const { return m_depthImageView; }
         const std::vector<VkFramebuffer>& GetVkFrameBuffers() const { return m_swapChainFramebuffers; }
-        VkDescriptorPool GetVkDescriptorPool() const { return m_descriptorPool; }
     protected:
         static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
     private:
@@ -68,32 +73,34 @@ namespace gfx
         void InitDescriptorPool();
     public:
         void InitSwapChain();
+        void TermSwapChain();
         void InitRenderPass();
         void InitCommandBuffers();
         void InitDepthTestBuffer();
         void TermDepthTestBuffer();
         void InitFrameBuffers();
         void TermFrameBuffers();
+        void ReInitSwapChain();
     protected:
 
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-        GLFWwindow* m_window;
+        GLFWwindow* m_window = nullptr;
         bool m_framebufferResized = false;
 
-        VkInstance m_instance;
-        VkSurfaceKHR m_surface;
+        VkInstance m_instance = VK_NULL_HANDLE;
+        VkSurfaceKHR m_surface = VK_NULL_HANDLE;
         VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
-        VkCommandPool m_commandPool;
+        VkCommandPool m_commandPool = VK_NULL_HANDLE;
 
         VkImage m_depthImage = VK_NULL_HANDLE;
         VkDeviceMemory m_depthImageMemory = VK_NULL_HANDLE;
         VkImageView m_depthImageView = VK_NULL_HANDLE;
 
         VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-        VkDevice m_device;
+        VkDevice m_device = VK_NULL_HANDLE;
 
-        VkSwapchainKHR m_swapChain;
+        VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
         std::vector<VkImage> m_swapChainImages;
         std::vector<VkImageView> m_swapChainImageViews;
         std::vector<VkFramebuffer> m_swapChainFramebuffers;
@@ -103,16 +110,19 @@ namespace gfx
 
         std::vector<VkCommandBuffer> m_commandBuffers;
 
-        VkRenderPass m_renderPass;
+        VkQueue m_graphicsQueue = VK_NULL_HANDLE;
+        VkQueue m_presentQueue = VK_NULL_HANDLE;
 
-        VkQueue m_graphicsQueue;
-        VkQueue m_presentQueue;
-
-        VkDescriptorPool m_descriptorPool;
+        class GFXVulkanRenderPass* m_renderPass = nullptr;
+        class GFXVulkanDescriptorManager* m_descriptorManager = nullptr;
+        class GFXVulkanRenderer* m_renderer = nullptr;
 
         array_list<char*> m_extensions;
         size_t m_count = 0;
 
         bool m_isAppEnding = false;
+
+        std::chrono::steady_clock::time_point m_startTime;
+        std::chrono::steady_clock::time_point m_lastTime;
     };
 }

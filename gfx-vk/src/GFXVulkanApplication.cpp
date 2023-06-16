@@ -3,17 +3,21 @@
 #include <stdexcept>
 #include <iostream>
 #include "PhysicalDeviceHelper.h"
+#include "BufferHelper.h"
 #include "GFXVulkanCommandBuffer.h"
 #include "GFXVulkanBuffer.h"
-#include "GFXVulkanVertexLayoutDescription .h"
+#include "GFXVulkanVertexLayoutDescription.h"
 #include "GFXVulkanTexture2D.h"
-
+#include "GFXVulkanDescriptorManager.h"
+#include "GFXVulkanShaderModule.h"
+#include "GFXVulkanGraphicsPipeline.h"
+#include "GFXVulkanRenderer.h"
+#include "GFXVulkanRenderPass.h"
 #include <set>
 #include <cmath>
 #include <array>
 #include <algorithm>
 #include <stdlib.h>
-#include "BufferHelper.h"
 
 #undef max
 
@@ -143,7 +147,7 @@ namespace gfx
         {
             _SetColor(ConsoleColor::yellow, ConsoleColor::black);
         }
-        else if(messageSeverity & VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+        else if (messageSeverity & VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
         {
             _SetColor(ConsoleColor::blue, ConsoleColor::black);
         }
@@ -165,21 +169,21 @@ namespace gfx
     {
         createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        createInfo.messageSeverity = 
+        createInfo.messageSeverity =
             VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
-            | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT 
+            | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
         createInfo.messageType =
             VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
             | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
-            //| VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        //| VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
         createInfo.pfnUserCallback = _VkDebugCallback;
     }
     static VkResult _CreateDebugUtilsMessengerEXT(
-        VkInstance instance, 
-        const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
-        const VkAllocationCallbacks* pAllocator, 
+        VkInstance instance,
+        const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+        const VkAllocationCallbacks* pAllocator,
         VkDebugUtilsMessengerEXT* pDebugMessenger)
     {
         auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -501,106 +505,25 @@ namespace gfx
             }
         }
     }
+    void GFXVulkanApplication::TermSwapChain()
+    {
+        for (size_t i = 0; i < m_swapChainImageViews.size(); i++)
+        {
+            vkDestroyImageView(m_device, m_swapChainImageViews[i], nullptr);
+        }
+
+        vkDestroySwapchainKHR(m_device, m_swapChain, nullptr);
+
+    }
 
     static bool _HasStencilComponent(VkFormat format)
     {
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
-    static VkFormat _FindSupportedFormat(
-        GFXVulkanApplication* app, 
-        const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
-    {
-        for (VkFormat format : candidates) {
-            VkFormatProperties props;
-            vkGetPhysicalDeviceFormatProperties(app->GetVkPhysicalDevice(), format, &props);
-
-            if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-                return format;
-            }
-            else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
-                return format;
-            }
-        }
-        throw std::runtime_error("failed to find supported format!");
-    }
-    static VkFormat _FindDepthFormat(GFXVulkanApplication* app)
-    {
-        return _FindSupportedFormat(app,
-            { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-        );
-    }
 
     void GFXVulkanApplication::InitRenderPass()
     {
-        VkAttachmentDescription colorAttachment{};
-        {
-            colorAttachment.format = m_swapChainImageFormat;
-            colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-            colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        }
-        VkAttachmentDescription depthAttachment{};
-        depthAttachment.format = _FindDepthFormat(this);
-        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference colorAttachmentRef{};
-        {
-            colorAttachmentRef.attachment = 0;
-            colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        }
-        VkAttachmentReference depthAttachmentRef{};
-        {
-            depthAttachmentRef.attachment = 1;
-            depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        }
-
-
-        VkSubpassDescription subpass{};
-        {
-            subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-            subpass.colorAttachmentCount = 1;
-            subpass.pColorAttachments = &colorAttachmentRef;
-            subpass.pDepthStencilAttachment = &depthAttachmentRef;
-        }
-
-        VkSubpassDependency dependency{};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-        VkAttachmentDescription attachments[2] = { colorAttachment, depthAttachment };
-
-        VkRenderPassCreateInfo renderPassInfo{};
-        {
-            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-            renderPassInfo.attachmentCount = 2;
-            renderPassInfo.pAttachments = attachments;
-            renderPassInfo.subpassCount = 1;
-            renderPassInfo.pSubpasses = &subpass;
-            renderPassInfo.dependencyCount = 1;
-            renderPassInfo.pDependencies = &dependency;
-        }
-
-
-        if (vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create render pass!");
-        }
+        m_renderPass = new GFXVulkanRenderPass(this);
     }
 
     void GFXVulkanApplication::InitCommandBuffers()
@@ -622,12 +545,12 @@ namespace gfx
     void GFXVulkanApplication::InitDepthTestBuffer()
     {
         this->TermDepthTestBuffer();
-        VkFormat depthFormat = _FindDepthFormat(this);
+        VkFormat depthFormat = BufferHelper::FindDepthFormat(this);
         auto extent = this->GetVkSwapChainExtent();
         BufferHelper::CreateImage(
-            this, extent.width, extent.height, depthFormat, 
+            this, extent.width, extent.height, depthFormat,
             VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             m_depthImage, m_depthImageMemory);
         m_depthImageView = BufferHelper::CreateImageView(this, m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
@@ -660,21 +583,21 @@ namespace gfx
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = GetVkRenderPass();
+            framebufferInfo.renderPass = m_renderPass->GetVkRenderPass();
             framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
             framebufferInfo.pAttachments = attachments.data();
             framebufferInfo.width = GetVkSwapChainExtent().width;
             framebufferInfo.height = GetVkSwapChainExtent().height;
             framebufferInfo.layers = 1;
 
-            if (vkCreateFramebuffer(GetVkDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS) 
+            if (vkCreateFramebuffer(GetVkDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS)
             {
                 throw std::runtime_error("failed to create framebuffer!");
             }
         }
     }
 
-    
+
     void GFXVulkanApplication::TermFrameBuffers()
     {
         for (size_t i = 0; i < m_swapChainFramebuffers.size(); i++)
@@ -686,25 +609,26 @@ namespace gfx
 
     void GFXVulkanApplication::InitDescriptorPool()
     {
-        VkDescriptorPoolSize poolSize[1] {};
-        poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSize[0].descriptorCount = static_cast<uint32_t>(1);
-        //poolSize[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        //poolSize[1].descriptorCount = static_cast<uint32_t>(1);
-
-        VkDescriptorPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = 0;
-        poolInfo.pPoolSizes = poolSize;
-        poolInfo.maxSets = static_cast<uint32_t>(128);
-        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-
-        if (vkCreateDescriptorPool(GetVkDevice(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create descriptor pool!");
-        }
+        m_descriptorManager = new GFXVulkanDescriptorManager(this);
     }
+    void GFXVulkanApplication::ReInitSwapChain()
+    {
+        int width = 0, height = 0;
+        glfwGetFramebufferSize(m_window, &width, &height);
+        while (width == 0 || height == 0)
+        {
+            glfwGetFramebufferSize(m_window, &width, &height);
+            glfwWaitEvents();
+        }
 
+        vkDeviceWaitIdle(m_device);
+
+        TermSwapChain();
+
+        InitSwapChain();
+        InitDepthTestBuffer();
+        InitFrameBuffers();
+    }
     void GFXVulkanApplication::Initialize()
     {
         glfwInit();
@@ -730,7 +654,7 @@ namespace gfx
             //}
         }
         // create surface
-        if (glfwCreateWindowSurface(m_instance, reinterpret_cast<GLFWwindow*>(m_window), nullptr, &m_surface) != VK_SUCCESS)
+        if (glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create window surface!");
         }
@@ -744,12 +668,19 @@ namespace gfx
         this->InitDepthTestBuffer();
         this->InitFrameBuffers();
         this->InitDescriptorPool();
+
+        m_renderer = new GFXVulkanRenderer(this);
     }
 
     void GFXVulkanApplication::ExecLoop()
     {
+        m_startTime = std::chrono::high_resolution_clock::now();
+
         while (!m_isAppEnding)
         {
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - m_lastTime).count();
+
             if (glfwWindowShouldClose(m_window))
             {
                 if (OnExitWindow)
@@ -766,12 +697,20 @@ namespace gfx
             }
 
             glfwPollEvents();
+
+
+            TickRender(deltaTime);
             if (OnLoop)
             {
-                OnLoop(0);
+                OnLoop(deltaTime);
             }
+            m_lastTime = currentTime;
         }
         vkDeviceWaitIdle(m_device);
+    }
+    void GFXVulkanApplication::TickRender(float deltaTime)
+    {
+        m_renderer->Render();
     }
 
     void GFXVulkanApplication::RequestStop()
@@ -781,10 +720,13 @@ namespace gfx
 
     void GFXVulkanApplication::Terminate()
     {
+        delete m_renderPass;
+
+        this->TermSwapChain();
         this->TermDepthTestBuffer();
         this->TermFrameBuffers();
 
-        vkDestroyDescriptorPool(GetVkDevice(), m_descriptorPool, nullptr);
+        delete m_descriptorManager;
         vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 
 
@@ -830,4 +772,23 @@ namespace gfx
         return GFXVulkanTexture2D::CreateFromMemory(this, data, length, enableReadWrite, format);
     }
 
+    std::shared_ptr<GFXShaderModule> GFXVulkanApplication::CreateShaderModule(const std::vector<uint8_t>& vert, const std::vector<uint8_t>& frag)
+    {
+        return std::shared_ptr<GFXShaderModule>(new GFXVulkanShaderModule(this, vert, frag));
+    }
+
+    std::shared_ptr<GFXGraphicsPipeline> GFXVulkanApplication::CreateGraphicsPipeline(
+        const GFXGraphicsPipelineConfig& config, 
+        std::shared_ptr<GFXVertexLayoutDescription> vertexLayout, 
+        std::shared_ptr<GFXShaderModule> shaderModule,
+        const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout)
+    {
+        auto vkPipeline = new GFXVulkanGraphicsPipeline(this, config, vertexLayout, shaderModule, descSetLayout);
+        return std::shared_ptr<GFXGraphicsPipeline>(vkPipeline);
+    }
+
+    GFXDescriptorManager* GFXVulkanApplication::GetDescriptorManager()
+    {
+        return m_descriptorManager;
+    }
 }

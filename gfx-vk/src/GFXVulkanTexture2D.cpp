@@ -1,14 +1,12 @@
-#include "GFXVulkanTexture2D.h"
-#include "BufferHelper.h"
+#include <gfx-vk/BufferHelper.h>
+#include <gfx-vk/GFXVulkanTexture2D.h>
+#include <gfx-vk/GFXVulkanCommandBuffer.h>
 #include <stdexcept>
 #include <stb_image.h>
-#include "GFXVulkanCommandBuffer.h"
 #include <cassert>
 
 namespace gfx
 {
-
-
 
     GFXVulkanTexture2D::~GFXVulkanTexture2D()
     {

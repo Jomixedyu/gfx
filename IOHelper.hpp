@@ -5,7 +5,7 @@
 
 namespace IOHelper
 {
-    inline std::vector<char> ReadFile(const std::string& filename)
+    inline std::vector<uint8_t> ReadFile(const std::string& filename)
     {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
@@ -14,10 +14,10 @@ namespace IOHelper
         }
 
         size_t fileSize = (size_t)file.tellg();
-        std::vector<char> buffer(fileSize);
+        std::vector<uint8_t> buffer(fileSize);
 
         file.seekg(0);
-        file.read(buffer.data(), fileSize);
+        file.read(reinterpret_cast<char*>(buffer.data()), fileSize);
 
         file.close();
 

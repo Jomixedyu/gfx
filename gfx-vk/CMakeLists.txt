@@ -7,6 +7,7 @@ add_library(${PROJECT_NAME} STATIC OBJECT ${gfxvk_SRC})
 
 target_include_directories(${PROJECT_NAME} PUBLIC "../gfx/include")
 target_include_directories(${PROJECT_NAME} PUBLIC "include")
+target_include_directories(${PROJECT_NAME} PUBLIC "include/gfx-vk")
 
 find_package(Vulkan REQUIRED)
 target_include_directories(${PROJECT_NAME} PUBLIC ${Vulkan_INCLUDE_DIRS})

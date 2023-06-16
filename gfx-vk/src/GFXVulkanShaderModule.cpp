@@ -1,10 +1,10 @@
-#include "VulkanShaderModule.h"
-#include "GFXVulkanApplication.h"
+#include <gfx-vk/GFXVulkanShaderModule.h>
+#include <gfx-vk/GFXVulkanApplication.h>
 #include <stdexcept>
 
 namespace gfx
 {
-    VkShaderModule _CreateShaderModule(GFXVulkanApplication* app, uint8_t* code, size_t len)
+    VkShaderModule _CreateShaderModule(GFXVulkanApplication* app, const uint8_t* code, size_t len)
     {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -20,11 +20,11 @@ namespace gfx
         return shaderModule;
     }
 
-    VulkanShaderModule::VulkanShaderModule(GFXVulkanApplication* app, uint8_t* vertCode, size_t vertCodeLen, uint8_t* fragCode, size_t fragCodeLen)
-        : m_app(app)
+    GFXVulkanShaderModule::GFXVulkanShaderModule(GFXVulkanApplication* app, const std::vector<uint8_t>& vert, const std::vector<uint8_t>& frag)
+        : base(vert, frag), m_app(app)
     {
-        VertShaderModule = _CreateShaderModule(app, vertCode, vertCodeLen);
-        FragShaderModule = _CreateShaderModule(app, fragCode, fragCodeLen);
+        VertShaderModule = _CreateShaderModule(app, vert.data(), vert.size());
+        FragShaderModule = _CreateShaderModule(app, frag.data(), frag.size());
 
         VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -41,7 +41,7 @@ namespace gfx
         ShaderStages[0] = vertShaderStageInfo;
         ShaderStages[1] = fragShaderStageInfo;
     }
-    VulkanShaderModule::~VulkanShaderModule()
+    GFXVulkanShaderModule::~GFXVulkanShaderModule()
     {
         vkDestroyShaderModule(m_app->GetVkDevice(), FragShaderModule, nullptr);
         vkDestroyShaderModule(m_app->GetVkDevice(), VertShaderModule, nullptr);

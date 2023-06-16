@@ -6,6 +6,7 @@ namespace gfx
 {
     class GFXVulkanApplication;
     class GFXVulkanDescriptorSet;
+    class GFXVulkanDescriptorPool;
 
     class GFXVulkanDescriptorSetLayout : public GFXDescriptorSetLayout
     {
@@ -16,8 +17,7 @@ namespace gfx
             const std::vector<GFXDescriptorSetLayoutInfo>& layout);
 
         virtual ~GFXVulkanDescriptorSetLayout() override;
-    public:
-        std::shared_ptr<GFXVulkanDescriptorSet> CreateVkDescriptorSet();
+
     public:
         const VkDescriptorSetLayout& GetVkDescriptorSetLayout() const { return m_descriptorSetLayout; }
 
@@ -50,20 +50,23 @@ namespace gfx
     class GFXVulkanDescriptorSet : public GFXDescriptorSet
     {
         using base = GFXDescriptorSet;
+        friend class GFXVulkanDescriptorPool;
+    private:
+        GFXVulkanDescriptorSet(GFXVulkanDescriptorPool* pool, GFXDescriptorSetLayout* layout);
     public:
-        GFXVulkanDescriptorSet(GFXVulkanApplication* app, GFXDescriptorSetLayout* layout);
         virtual ~GFXVulkanDescriptorSet() override;
         GFXVulkanDescriptorSet(const GFXVulkanDescriptorSet&) = delete;
     public:
-        GFXVulkanDescriptor* AddDescriptor(uint32_t bindingPoint);
-        void Submit();
+        virtual GFXDescriptor* AddDescriptor(uint32_t bindingPoint) override;
+        virtual void Submit() override;
     public:
-        GFXVulkanApplication* GetApplication() const { return m_app; }
-        VkDescriptorSet GetVkDescriptorSet() const { return m_descriptorSet; }
+        GFXVulkanApplication* GetApplication() const;
+        const VkDescriptorSet& GetVkDescriptorSet() const { return m_descriptorSet; }
     protected:
+        GFXVulkanDescriptorPool* m_pool;
         std::vector<GFXVulkanDescriptor*> m_descriptors;
         VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
         GFXVulkanDescriptorSetLayout* m_setlayout;
-        GFXVulkanApplication* m_app;
     };
+
 }
