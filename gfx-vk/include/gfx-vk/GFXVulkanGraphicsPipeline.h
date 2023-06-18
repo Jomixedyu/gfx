@@ -15,7 +15,8 @@ namespace gfx
             const GFXGraphicsPipelineConfig& config,
             std::shared_ptr<GFXVertexLayoutDescription> vertexLayout,
             std::shared_ptr<GFXShaderModule> shaderModule,
-            const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout);
+            const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout,
+            GFXVulkanRenderPass* targetPass);
         virtual ~GFXVulkanGraphicsPipeline() override;
 
     public:
@@ -23,6 +24,7 @@ namespace gfx
         const VkPipeline& GetVkPipeline() const { return m_graphicsPipeline; }
     protected:
         GFXVulkanApplication* m_app;
+        GFXVulkanRenderPass* m_targetRenderPass;
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
         VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
     };

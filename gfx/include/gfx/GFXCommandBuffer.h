@@ -15,6 +15,7 @@ namespace gfx
         GFXCommandBuffer() {}
         GFXCommandBuffer(const GFXCommandBuffer&) = delete;
         GFXCommandBuffer(GFXCommandBuffer&&) = delete;
+        virtual ~GFXCommandBuffer() override;
 
         virtual void CmdClear(float r, float g, float b, float a, bool depth, bool stencil) = 0;
         virtual void CmdBindPipeline(GFXGraphicsPipeline* pipeline) = 0;

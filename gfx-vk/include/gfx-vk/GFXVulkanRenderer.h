@@ -1,6 +1,7 @@
 #pragma once
 #include "VulkanInclude.h"
 #include <vector>
+#include <gfx/GFXCommandBuffer.h>
 
 namespace gfx
 {
@@ -15,7 +16,7 @@ namespace gfx
         void Render();
 
     protected:
-        void RecordCommandBuffer(VkCommandBuffer cmdBuffer, uint32_t imageIndex);
+        void RecordCommandBuffer(GFXCommandBuffer* commandBuffer, uint32_t imageIndex);
     protected:
         GFXVulkanApplication* m_app;
 

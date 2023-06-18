@@ -249,7 +249,7 @@ private:
 
         pipeline.reset();
 
-        vkDestroyRenderPass(gfxapp->GetVkDevice(), gfxapp->GetVkRenderPass(), nullptr);
+        //vkDestroyRenderPass(gfxapp->GetVkDevice(), gfxapp->GetVkRenderPass(), nullptr);
 
         /*vkDestroyCommandPool(gfxapp->GetVkDevice(), gfxapp->GetVkCommandPool(), nullptr);*/
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -262,75 +262,75 @@ private:
     }
 
 
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
-    {
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-            throw std::runtime_error("failed to begin recording command buffer!");
-        }
-
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = gfxapp->GetVkRenderPass();
-        renderPassInfo.framebuffer = gfxapp->GetVkFrameBuffers()[imageIndex];
-        renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = gfxapp->GetVkSwapChainExtent();
-
-        std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-        clearValues[1].depthStencil = { 1.0f, 0 };
-
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
-
-        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVkPipeline());
-
-            VkViewport viewport{};
-#if VULKAN_REVERT_VIEWPORT
-            viewport.x = 0.0f;
-            viewport.y = 0.0f + gfxapp->GetVkSwapChainExtent().height;
-            viewport.width = (float)gfxapp->GetVkSwapChainExtent().width;
-            viewport.height = -(float)gfxapp->GetVkSwapChainExtent().height;
-#else
-            viewport.x = 0.0f;
-            viewport.y = 0.0f;
-            viewport.width = (float)gfxapp->GetVkSwapChainExtent().width;
-            viewport.height = (float)gfxapp->GetVkSwapChainExtent().height;
-#endif
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-
-            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-            VkRect2D scissor{};
-            scissor.offset = { 0, 0 };
-            scissor.extent = gfxapp->GetVkSwapChainExtent();
-            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-            //vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVkPipeline());
-
-            VkBuffer vertexBuffers[] = { static_cast<gfx::GFXVulkanBuffer*>(vertexBuffer)->GetVkBuffer() };
-            VkDeviceSize offsets[] = { 0 };
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-            vkCmdBindIndexBuffer(commandBuffer, indexBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT16);
-            //vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-            auto descriptorSet = descriptorSets[0]->GetVkDescriptorSet();
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVkPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
-            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-        }
-        vkCmdEndRenderPass(commandBuffer);
-
-        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to record command buffer!");
-        }
-    }
+//    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+//    {
+//        VkCommandBufferBeginInfo beginInfo{};
+//        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+//
+//        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+//            throw std::runtime_error("failed to begin recording command buffer!");
+//        }
+//
+//        VkRenderPassBeginInfo renderPassInfo{};
+//        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+//        renderPassInfo.renderPass = gfxapp.->GetVkRenderPass();
+//        renderPassInfo.framebuffer = gfxapp->GetVkFrameBuffers()[imageIndex];
+//        renderPassInfo.renderArea.offset = { 0, 0 };
+//        renderPassInfo.renderArea.extent = gfxapp->GetVkSwapChainExtent();
+//
+//        std::array<VkClearValue, 2> clearValues{};
+//        clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+//        clearValues[1].depthStencil = { 1.0f, 0 };
+//
+//        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+//        renderPassInfo.pClearValues = clearValues.data();
+//
+//        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+//        {
+//            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVkPipeline());
+//
+//            VkViewport viewport{};
+//#if VULKAN_REVERT_VIEWPORT
+//            viewport.x = 0.0f;
+//            viewport.y = 0.0f + gfxapp->GetVkSwapChainExtent().height;
+//            viewport.width = (float)gfxapp->GetVkSwapChainExtent().width;
+//            viewport.height = -(float)gfxapp->GetVkSwapChainExtent().height;
+//#else
+//            viewport.x = 0.0f;
+//            viewport.y = 0.0f;
+//            viewport.width = (float)gfxapp->GetVkSwapChainExtent().width;
+//            viewport.height = (float)gfxapp->GetVkSwapChainExtent().height;
+//#endif
+//            viewport.minDepth = 0.0f;
+//            viewport.maxDepth = 1.0f;
+//
+//            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+//
+//            VkRect2D scissor{};
+//            scissor.offset = { 0, 0 };
+//            scissor.extent = gfxapp->GetVkSwapChainExtent();
+//            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+//
+//            //vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+//
+//            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVkPipeline());
+//
+//            VkBuffer vertexBuffers[] = { static_cast<gfx::GFXVulkanBuffer*>(vertexBuffer)->GetVkBuffer() };
+//            VkDeviceSize offsets[] = { 0 };
+//            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+//            vkCmdBindIndexBuffer(commandBuffer, indexBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT16);
+//            //vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+//            auto descriptorSet = descriptorSets[0]->GetVkDescriptorSet();
+//            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVkPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
+//            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+//        }
+//        vkCmdEndRenderPass(commandBuffer);
+//
+//        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+//        {
+//            throw std::runtime_error("failed to record command buffer!");
+//        }
+//    }
 
     void createSyncObjects() {
 
@@ -395,7 +395,7 @@ private:
         vkResetFences(gfxapp->GetVkDevice(), 1, &inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(gfxapp->GetVkCommandBuffer(currentFrame), /*VkCommandBufferResetFlagBits*/ 0);
-        recordCommandBuffer(gfxapp->GetVkCommandBuffer(currentFrame), imageIndex);
+        //recordCommandBuffer(gfxapp->GetVkCommandBuffer(currentFrame), imageIndex);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

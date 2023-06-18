@@ -58,10 +58,13 @@ namespace gfx
         const VkFormat& GetSwapChainImageFormat() const { return m_swapChainImageFormat; }
         const std::vector<VkImageView>& GetVkSwapchainImageViews() const { return m_swapChainImageViews; }
         const VkExtent2D& GetVkSwapChainExtent() const { return m_swapChainExtent; }
-        const std::vector<VkCommandBuffer> GetVkCommandBuffers() const { return m_commandBuffers; }
-        const VkCommandBuffer& GetVkCommandBuffer(size_t index) const { return m_commandBuffers[index]; }
+        const std::vector<VkCommandBuffer> GetVkCommandBuffers() const;
+        const VkCommandBuffer& GetVkCommandBuffer(size_t index) const;
+        class GFXVulkanCommandBuffer* GetCommandBuffer(size_t index) const { return m_commandBuffers[index].get(); }
         VkImageView GetVkDepthImageView() const { return m_depthImageView; }
         const std::vector<VkFramebuffer>& GetVkFrameBuffers() const { return m_swapChainFramebuffers; }
+
+        class GFXVulkanRenderPass* GetSwapChainRenderPass() const { return m_renderPass; }
     protected:
         static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
     private:
@@ -108,7 +111,7 @@ namespace gfx
         VkFormat m_swapChainImageFormat;
         VkExtent2D m_swapChainExtent;
 
-        std::vector<VkCommandBuffer> m_commandBuffers;
+        std::vector<std::unique_ptr<class GFXVulkanCommandBuffer>> m_commandBuffers;
 
         VkQueue m_graphicsQueue = VK_NULL_HANDLE;
         VkQueue m_presentQueue = VK_NULL_HANDLE;

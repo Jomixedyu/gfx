@@ -1,4 +1,6 @@
 #include "GFXVulkanApplication.h"
+#include "GFXVulkanApplication.h"
+#include "GFXVulkanApplication.h"
 #include <glfw/include/GLFW/glfw3.h>
 #include <stdexcept>
 #include <iostream>
@@ -61,6 +63,21 @@ namespace gfx
     intptr_t GFXVulkanApplication::GetWindowHandle()
     {
         return reinterpret_cast<intptr_t>(m_window);
+    }
+
+    const std::vector<VkCommandBuffer> GFXVulkanApplication::GetVkCommandBuffers() const
+    {
+        std::vector<VkCommandBuffer> ret;
+        for (auto& buffer : m_commandBuffers)
+        {
+            ret.push_back(buffer->GetVkCommandBuffer());
+        }
+        return ret;
+    }
+
+    const VkCommandBuffer& GFXVulkanApplication::GetVkCommandBuffer(size_t index) const
+    {
+        return m_commandBuffers[index]->GetVkCommandBuffer();
     }
 
     void GFXVulkanApplication::FramebufferResizeCallback(GLFWwindow* window, int width, int height)
@@ -528,16 +545,23 @@ namespace gfx
 
     void GFXVulkanApplication::InitCommandBuffers()
     {
-        m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        std::vector<VkCommandBuffer> buffers;
+        buffers.resize(MAX_FRAMES_IN_FLIGHT);
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = m_commandPool;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = m_commandBuffers.size();
+        allocInfo.commandBufferCount = buffers.size();
 
-        if (vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffers.data()) != VK_SUCCESS) {
+        if (vkAllocateCommandBuffers(m_device, &allocInfo, buffers.data()) != VK_SUCCESS) 
+        {
             throw std::runtime_error("failed to allocate command buffers!");
+        }
+
+        for (size_t i = 0; i < buffers.size(); i++)
+        {
+            m_commandBuffers.push_back(std::unique_ptr<GFXVulkanCommandBuffer>(new GFXVulkanCommandBuffer(this)));
         }
     }
 
@@ -725,6 +749,8 @@ namespace gfx
         this->TermSwapChain();
         this->TermDepthTestBuffer();
         this->TermFrameBuffers();
+
+        m_commandBuffers.clear();
 
         delete m_descriptorManager;
         vkDestroyCommandPool(m_device, m_commandPool, nullptr);

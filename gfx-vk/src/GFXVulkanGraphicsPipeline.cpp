@@ -14,9 +14,10 @@ namespace gfx
         const GFXGraphicsPipelineConfig& config,
         std::shared_ptr<GFXVertexLayoutDescription> vertexLayout,
         std::shared_ptr<GFXShaderModule> shaderModule,
-        const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout
+        const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout,
+        GFXVulkanRenderPass* targetPass
     )
-        : m_app(app)
+        : m_app(app), m_targetRenderPass(targetPass)
     {
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -121,7 +122,7 @@ namespace gfx
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDynamicState = &dynamicState;
         pipelineInfo.layout = m_pipelineLayout;
-        pipelineInfo.renderPass = app->GetVkRenderPass();
+        pipelineInfo.renderPass = targetPass->GetVkRenderPass();
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
         pipelineInfo.pDepthStencilState = &depthStencil;

@@ -10,11 +10,8 @@ namespace gfx
     {
 
     public:
-        GFXVulkanCommandBuffer(GFXVulkanApplication* app)
-            : m_app(app)
-        {
-
-        }
+        GFXVulkanCommandBuffer(GFXVulkanApplication* app);
+        virtual ~GFXVulkanCommandBuffer() override;
 
         virtual void Begin() override;
         virtual void End() override;
@@ -34,7 +31,13 @@ namespace gfx
         }
         VkCommandBuffer GetVkCommandBuffer() const { return m_cmdBuffer; }
     protected:
-        VkCommandBuffer m_cmdBuffer;
+        VkCommandBuffer m_cmdBuffer = VK_NULL_HANDLE;
         GFXVulkanApplication* m_app;
+
+    public:
+        VkSemaphore m_imageSemaphore = VK_NULL_HANDLE;
+        VkSemaphore m_renderSemaphore = VK_NULL_HANDLE;
+        VkFence m_inFlightFence = VK_NULL_HANDLE;
+
     };
 }
