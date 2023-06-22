@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include "GFXGraphicsPipeline.h"
+#include "GFXShaderPass.h"
 
 namespace gfx
 {
@@ -15,10 +15,10 @@ namespace gfx
         GFXCommandBuffer() {}
         GFXCommandBuffer(const GFXCommandBuffer&) = delete;
         GFXCommandBuffer(GFXCommandBuffer&&) = delete;
-        virtual ~GFXCommandBuffer() override;
+        virtual ~GFXCommandBuffer() {}
 
         virtual void CmdClear(float r, float g, float b, float a, bool depth, bool stencil) = 0;
-        virtual void CmdBindPipeline(GFXGraphicsPipeline* pipeline) = 0;
+        virtual void CmdBindPipeline(GFXShaderPass* pipeline) = 0;
         virtual void CmdBindVertexBuffers() = 0;
         virtual void CmdBindIndexBuffer() = 0;
         virtual void CmdBindDescriptorSets() = 0;

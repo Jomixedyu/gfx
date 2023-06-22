@@ -1,12 +1,13 @@
 #pragma once
 #include <gfx/GFXRenderPass.h>
 #include "VulkanInclude.h"
+#include "GFXVulkanCommandBuffer.h"
 
 namespace gfx
 {
     class GFXVulkanApplication;
 
-    class GFXVulkanRenderPass : public GFXRenderPass
+    class GFXVulkanRenderPass : public GFXRenderPassLayout
     {
 
     public:

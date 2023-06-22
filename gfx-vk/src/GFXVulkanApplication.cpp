@@ -1,6 +1,4 @@
 #include "GFXVulkanApplication.h"
-#include "GFXVulkanApplication.h"
-#include "GFXVulkanApplication.h"
 #include <glfw/include/GLFW/glfw3.h>
 #include <stdexcept>
 #include <iostream>
@@ -15,6 +13,7 @@
 #include "GFXVulkanGraphicsPipeline.h"
 #include "GFXVulkanRenderer.h"
 #include "GFXVulkanRenderPass.h"
+#include "GFXVulkanViewport.h"
 #include <set>
 #include <cmath>
 #include <array>
@@ -63,21 +62,6 @@ namespace gfx
     intptr_t GFXVulkanApplication::GetWindowHandle()
     {
         return reinterpret_cast<intptr_t>(m_window);
-    }
-
-    const std::vector<VkCommandBuffer> GFXVulkanApplication::GetVkCommandBuffers() const
-    {
-        std::vector<VkCommandBuffer> ret;
-        for (auto& buffer : m_commandBuffers)
-        {
-            ret.push_back(buffer->GetVkCommandBuffer());
-        }
-        return ret;
-    }
-
-    const VkCommandBuffer& GFXVulkanApplication::GetVkCommandBuffer(size_t index) const
-    {
-        return m_commandBuffers[index]->GetVkCommandBuffer();
     }
 
     void GFXVulkanApplication::FramebufferResizeCallback(GLFWwindow* window, int width, int height)
@@ -359,300 +343,23 @@ namespace gfx
             throw std::runtime_error("failed to create command pool!");
         }
     }
-    struct SwapChainSupportDetails
-    {
-        VkSurfaceCapabilitiesKHR capabilities;
-        std::vector<VkSurfaceFormatKHR> formats;
-        std::vector<VkPresentModeKHR> presentModes;
-    };
-    static SwapChainSupportDetails _QuerySwapChainSupport(GFXVulkanApplication* app)
-    {
-        SwapChainSupportDetails details;
 
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &details.capabilities);
-
-        uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &formatCount, nullptr);
-
-        if (formatCount != 0)
-        {
-            details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &formatCount, details.formats.data());
-        }
-
-        uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &presentModeCount, nullptr);
-
-        if (presentModeCount != 0)
-        {
-            details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &presentModeCount, details.presentModes.data());
-        }
-
-        return details;
-    }
-    static VkSurfaceFormatKHR _ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
-    {
-        for (const auto& availableFormat : availableFormats)
-        {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-            {
-                return availableFormat;
-            }
-        }
-
-        return availableFormats[0];
-    }
-    VkPresentModeKHR _ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
-    {
-        for (const auto& availablePresentMode : availablePresentModes)
-        {
-            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-                return availablePresentMode;
-            }
-        }
-
-        return VK_PRESENT_MODE_FIFO_KHR;
-    }
-    static VkExtent2D _ChooseSwapExtent(GFXVulkanApplication* app, const VkSurfaceCapabilitiesKHR& capabilities)
-    {
-        if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
-        {
-            return capabilities.currentExtent;
-        }
-        else
-        {
-            int width, height;
-            glfwGetFramebufferSize(reinterpret_cast<GLFWwindow*>(app->GetWindowHandle()), &width, &height);
-
-            VkExtent2D actualExtent = {
-                static_cast<uint32_t>(width),
-                static_cast<uint32_t>(height)
-            };
-
-            actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-            actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-            return actualExtent;
-        }
-    }
-
-    void GFXVulkanApplication::InitSwapChain()
-    {
-        SwapChainSupportDetails swapChainSupport = _QuerySwapChainSupport(this);
-        VkSurfaceFormatKHR surfaceFormat = _ChooseSwapSurfaceFormat(swapChainSupport.formats);
-        VkPresentModeKHR presentMode = _ChooseSwapPresentMode(swapChainSupport.presentModes);
-        VkExtent2D extent = _ChooseSwapExtent(this, swapChainSupport.capabilities);
-
-        uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-        if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
-        {
-            imageCount = swapChainSupport.capabilities.maxImageCount;
-        }
-
-        VkSwapchainCreateInfoKHR createInfo{};
-
-        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = m_surface;
-
-        createInfo.minImageCount = imageCount;
-        createInfo.imageFormat = surfaceFormat.format;
-        createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = extent;
-        createInfo.imageArrayLayers = 1;
-        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-
-        vk::QueueFamilyIndices indices = vk::PhysicalDeviceHelper::FindQueueFamilies(m_surface, m_physicalDevice);
-        uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
-
-        if (indices.graphicsFamily != indices.presentFamily)
-        {
-            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-            createInfo.queueFamilyIndexCount = 2;
-            createInfo.pQueueFamilyIndices = queueFamilyIndices;
-        }
-        else
-        {
-            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        }
-        createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        createInfo.presentMode = presentMode;
-        createInfo.clipped = VK_TRUE;
-
-        createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-        if (vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapChain) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create swap chain!");
-        }
-
-        //create swapchain images
-        vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, nullptr);
-        m_swapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, m_swapChainImages.data());
-
-        m_swapChainImageFormat = surfaceFormat.format;
-        m_swapChainExtent = extent;
-
-        //create swapchain image view
-        m_swapChainImageViews.resize(m_swapChainImages.size());
-
-        for (size_t i = 0; i < m_swapChainImages.size(); i++)
-        {
-            VkImageViewCreateInfo createInfo{};
-            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            createInfo.image = m_swapChainImages[i];
-            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            createInfo.format = m_swapChainImageFormat;
-            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            createInfo.subresourceRange.baseMipLevel = 0;
-            createInfo.subresourceRange.levelCount = 1;
-            createInfo.subresourceRange.baseArrayLayer = 0;
-            createInfo.subresourceRange.layerCount = 1;
-
-            if (vkCreateImageView(m_device, &createInfo, nullptr, &m_swapChainImageViews[i]) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to create image views!");
-            }
-        }
-    }
-    void GFXVulkanApplication::TermSwapChain()
-    {
-        for (size_t i = 0; i < m_swapChainImageViews.size(); i++)
-        {
-            vkDestroyImageView(m_device, m_swapChainImageViews[i], nullptr);
-        }
-
-        vkDestroySwapchainKHR(m_device, m_swapChain, nullptr);
-
-    }
 
     static bool _HasStencilComponent(VkFormat format)
     {
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
-    void GFXVulkanApplication::InitRenderPass()
-    {
-        m_renderPass = new GFXVulkanRenderPass(this);
-    }
-
-    void GFXVulkanApplication::InitCommandBuffers()
-    {
-        std::vector<VkCommandBuffer> buffers;
-        buffers.resize(MAX_FRAMES_IN_FLIGHT);
-
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = m_commandPool;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = buffers.size();
-
-        if (vkAllocateCommandBuffers(m_device, &allocInfo, buffers.data()) != VK_SUCCESS) 
-        {
-            throw std::runtime_error("failed to allocate command buffers!");
-        }
-
-        for (size_t i = 0; i < buffers.size(); i++)
-        {
-            m_commandBuffers.push_back(std::unique_ptr<GFXVulkanCommandBuffer>(new GFXVulkanCommandBuffer(this)));
-        }
-    }
 
 
-    void GFXVulkanApplication::InitDepthTestBuffer()
-    {
-        this->TermDepthTestBuffer();
-        VkFormat depthFormat = BufferHelper::FindDepthFormat(this);
-        auto extent = this->GetVkSwapChainExtent();
-        BufferHelper::CreateImage(
-            this, extent.width, extent.height, depthFormat,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            m_depthImage, m_depthImageMemory);
-        m_depthImageView = BufferHelper::CreateImageView(this, m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-        BufferHelper::TransitionImageLayout(this, m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-    }
-
-    void GFXVulkanApplication::TermDepthTestBuffer()
-    {
-        if (m_depthImage != VK_NULL_HANDLE)
-        {
-            vkDestroyImageView(m_device, m_depthImageView, nullptr);
-            vkDestroyImage(m_device, m_depthImage, nullptr);
-            vkFreeMemory(m_device, m_depthImageMemory, nullptr);
-            m_depthImage = VK_NULL_HANDLE;
-        }
-    }
-
-    void GFXVulkanApplication::InitFrameBuffers()
-    {
-        this->TermFrameBuffers();
-        m_swapChainFramebuffers.resize(GetVkSwapchainImageViews().size());
-
-        for (size_t i = 0; i < GetVkSwapchainImageViews().size(); i++) {
-
-            std::array<VkImageView, 2> attachments =
-            {
-                GetVkSwapchainImageViews()[i],
-                GetVkDepthImageView()
-            };
-
-            VkFramebufferCreateInfo framebufferInfo{};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = m_renderPass->GetVkRenderPass();
-            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-            framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = GetVkSwapChainExtent().width;
-            framebufferInfo.height = GetVkSwapChainExtent().height;
-            framebufferInfo.layers = 1;
-
-            if (vkCreateFramebuffer(GetVkDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to create framebuffer!");
-            }
-        }
-    }
 
 
-    void GFXVulkanApplication::TermFrameBuffers()
-    {
-        for (size_t i = 0; i < m_swapChainFramebuffers.size(); i++)
-        {
-            vkDestroyFramebuffer(GetVkDevice(), m_swapChainFramebuffers[i], nullptr);
-        }
-        m_swapChainFramebuffers.clear();
-    }
 
     void GFXVulkanApplication::InitDescriptorPool()
     {
         m_descriptorManager = new GFXVulkanDescriptorManager(this);
     }
-    void GFXVulkanApplication::ReInitSwapChain()
-    {
-        int width = 0, height = 0;
-        glfwGetFramebufferSize(m_window, &width, &height);
-        while (width == 0 || height == 0)
-        {
-            glfwGetFramebufferSize(m_window, &width, &height);
-            glfwWaitEvents();
-        }
 
-        vkDeviceWaitIdle(m_device);
-
-        TermSwapChain();
-
-        InitSwapChain();
-        InitDepthTestBuffer();
-        InitFrameBuffers();
-    }
     void GFXVulkanApplication::Initialize()
     {
         glfwInit();
@@ -686,11 +393,9 @@ namespace gfx
         this->InitPickPhysicalDevice();
         this->InitLogicalDevice();
         this->InitCommandPool();
-        this->InitSwapChain();
-        this->InitRenderPass();
-        this->InitCommandBuffers();
-        this->InitDepthTestBuffer();
-        this->InitFrameBuffers();
+        // viewport
+        m_viewport = new GFXVulkanViewport(this, m_window);
+        //
         this->InitDescriptorPool();
 
         m_renderer = new GFXVulkanRenderer(this);
@@ -699,7 +404,7 @@ namespace gfx
     void GFXVulkanApplication::ExecLoop()
     {
         m_startTime = std::chrono::high_resolution_clock::now();
-
+        m_lastTime = std::chrono::high_resolution_clock::now();
         while (!m_isAppEnding)
         {
             auto currentTime = std::chrono::high_resolution_clock::now();
@@ -744,14 +449,12 @@ namespace gfx
 
     void GFXVulkanApplication::Terminate()
     {
-        delete m_renderPass;
 
-        this->TermSwapChain();
-        this->TermDepthTestBuffer();
-        this->TermFrameBuffers();
+        //this->TermDepthTestBuffer();
+        //this->TermFrameBuffers();
 
-        m_commandBuffers.clear();
-
+        //m_commandBuffers.clear();
+        delete m_viewport;
         delete m_descriptorManager;
         vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 
@@ -793,9 +496,9 @@ namespace gfx
     }
 
     std::shared_ptr<GFXTexture2D> gfx::GFXVulkanApplication::CreateTexture2DFromMemory(
-        const uint8_t* data, int32_t length, bool enableReadWrite, GFXTextureFormat format)
+        const uint8_t* data, int32_t length, const GFXSamplerConfig& samplerConfig, bool enableReadWrite, GFXTextureFormat format)
     {
-        return GFXVulkanTexture2D::CreateFromMemory(this, data, length, enableReadWrite, format);
+        return GFXVulkanTexture2D::CreateFromMemory(this, data, length, enableReadWrite, format, samplerConfig);
     }
 
     std::shared_ptr<GFXShaderModule> GFXVulkanApplication::CreateShaderModule(const std::vector<uint8_t>& vert, const std::vector<uint8_t>& frag)
@@ -803,14 +506,14 @@ namespace gfx
         return std::shared_ptr<GFXShaderModule>(new GFXVulkanShaderModule(this, vert, frag));
     }
 
-    std::shared_ptr<GFXGraphicsPipeline> GFXVulkanApplication::CreateGraphicsPipeline(
-        const GFXGraphicsPipelineConfig& config, 
+    std::shared_ptr<GFXShaderPass> GFXVulkanApplication::CreateGraphicsPipeline(
+        const GFXShaderPassConfig& config, 
         std::shared_ptr<GFXVertexLayoutDescription> vertexLayout, 
         std::shared_ptr<GFXShaderModule> shaderModule,
         const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout)
     {
-        auto vkPipeline = new GFXVulkanGraphicsPipeline(this, config, vertexLayout, shaderModule, descSetLayout);
-        return std::shared_ptr<GFXGraphicsPipeline>(vkPipeline);
+        auto vkPipeline = new GFXVulkanGraphicsPipeline(this, config, vertexLayout, shaderModule, descSetLayout, nullptr);
+        return std::shared_ptr<GFXShaderPass>(vkPipeline);
     }
 
     GFXDescriptorManager* GFXVulkanApplication::GetDescriptorManager()

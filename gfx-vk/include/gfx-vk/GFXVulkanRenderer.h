@@ -2,6 +2,8 @@
 #include "VulkanInclude.h"
 #include <vector>
 #include <gfx/GFXCommandBuffer.h>
+#include <gfx/GFXRenderTarget.h>
+#include "GFXVulkanRenderTarget.h"
 
 namespace gfx
 {
@@ -16,9 +18,10 @@ namespace gfx
         void Render();
 
     protected:
-        void RecordCommandBuffer(GFXCommandBuffer* commandBuffer, uint32_t imageIndex);
+        void RecordCommandBuffer(GFXCommandBuffer* commandBuffer, const std::vector<GFXRenderTarget*>& renderTarget);
     protected:
         GFXVulkanApplication* m_app;
+        GFXVulkanRenderTarget* m_renderTarget;
 
         std::vector<VkSemaphore> m_imageAvailableSemaphores;
         std::vector<VkSemaphore> m_renderFinishedSemaphores;

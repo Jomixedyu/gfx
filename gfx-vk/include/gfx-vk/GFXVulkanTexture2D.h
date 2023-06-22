@@ -8,23 +8,32 @@ namespace gfx
 
     class GFXVulkanTexture2D : public GFXTexture2D
     {
+        using base = GFXTexture2D;
     public:
         using DataDeleter = void(*)(uint8_t*);
     public:
         static std::shared_ptr<GFXVulkanTexture2D> CreateFromMemory(
-            GFXVulkanApplication* app, const uint8_t* fileData, int32_t length, bool enableReadWrite, GFXTextureFormat format);
-        //static std::shared_ptr<GFXVulkanTexture2D> CreateFromFile(
-        //    GFXVulkanApplication* app, const char* filename, bool enableReadWrite, GFXTextureChannelMode mode);
+            GFXVulkanApplication* app, const uint8_t* fileData, int32_t length, bool enableReadWrite, 
+            GFXTextureFormat format, const GFXSamplerConfig& samplerCfg);
 
     public:
         virtual ~GFXVulkanTexture2D() override;
-        void Init(
-            GFXVulkanApplication* app, 
-            const uint8_t* imageData,
-            int32_t width, int32_t height, int32_t channel, 
-            VkFormat format,
-            bool enableReadWrite);
 
+        GFXVulkanTexture2D(
+            GFXVulkanApplication* app,
+            const uint8_t* imageData,
+            int32_t width, int32_t height, int32_t channel,
+            VkFormat format,
+            bool enableReadWrite, 
+            const GFXSamplerConfig& samplerCfg);
+
+        GFXVulkanTexture2D(GFXVulkanApplication* app, int32_t width, int32_t height, int32_t channel,
+            VkFormat format, VkImage image, VkDeviceMemory memory, VkImageView imageView, 
+            bool enableReadWrite, 
+            const GFXSamplerConfig& samplerCfg);
+
+
+        GFXVulkanTexture2D(const GFXVulkanTexture2D&) = delete;
     public:
         virtual const uint8_t* GetData() const override;
     public:

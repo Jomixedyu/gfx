@@ -11,7 +11,7 @@ namespace gfx
 
     GFXVulkanGraphicsPipeline::GFXVulkanGraphicsPipeline(
         GFXVulkanApplication* app,
-        const GFXGraphicsPipelineConfig& config,
+        const GFXShaderPassConfig& config,
         std::shared_ptr<GFXVertexLayoutDescription> vertexLayout,
         std::shared_ptr<GFXShaderModule> shaderModule,
         const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout,

@@ -20,7 +20,10 @@ namespace gfx
     {
         vkFreeCommandBuffers(m_app->GetVkDevice(), m_app->GetVkCommandPool(), 1, &m_cmdBuffer);
     }
-
+    GFXApplication* GFXVulkanCommandBuffer::GetApplication() const
+    {
+        return m_app;
+    }
     void GFXVulkanCommandBuffer::Begin()
     {
         vkResetCommandBuffer(m_cmdBuffer, /*VkCommandBufferResetFlagBits*/ 0);
@@ -68,10 +71,11 @@ namespace gfx
         VkClearValue depthValue;
 
     }
-    void GFXVulkanCommandBuffer::CmdBindPipeline(GFXGraphicsPipeline* pipeline) {}
+    void GFXVulkanCommandBuffer::CmdBindPipeline(GFXShaderPass* pipeline) {}
     void GFXVulkanCommandBuffer::CmdBindVertexBuffers() {}
     void GFXVulkanCommandBuffer::CmdBindIndexBuffer() {}
     void GFXVulkanCommandBuffer::CmdBindDescriptorSets() {}
     void GFXVulkanCommandBuffer::CmdDrawIndexed() {}
+
 
 }

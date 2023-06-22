@@ -1,5 +1,5 @@
 #pragma once
-#include <gfx/GFXGraphicsPipeline.h>
+#include <gfx/GFXShaderPass.h>
 #include <gfx/GFXDescriptorSet.h>
 #include <gfx-vk/VulkanInclude.h>
 #include "GFXVulkanRenderPass.h"
@@ -7,12 +7,12 @@
 namespace gfx
 {
     class GFXVulkanApplication;
-    class GFXVulkanGraphicsPipeline : public GFXGraphicsPipeline
+    class GFXVulkanGraphicsPipeline : public GFXShaderPass
     {
     public:
         GFXVulkanGraphicsPipeline(
             GFXVulkanApplication* app, 
-            const GFXGraphicsPipelineConfig& config,
+            const GFXShaderPassConfig& config,
             std::shared_ptr<GFXVertexLayoutDescription> vertexLayout,
             std::shared_ptr<GFXShaderModule> shaderModule,
             const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout,

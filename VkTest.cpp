@@ -16,7 +16,7 @@
 #include <gfx/GFXDefined.h>
 #include <gfx/GFXCommandBufferScope.h>
 #include <gfx/GFXShaderModule.h>
-#include <gfx/GFXGraphicsPipeline.h>
+#include <gfx/GFXShaderPass.h>
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
@@ -42,6 +42,7 @@
 #include <gfx-vk/GFXVulkanTexture2D.h>
 #include <gfx-vk/GFXVulkanDescriptorSet.h>
 #include <gfx-vk/GFXVulkanGraphicsPipeline.h>
+#include <gfx-vk/GFXVulkanViewport.h>
 #include <chrono>
 #include <gfx-vk/BufferHelper.h>
 #include <gfx-vk/GFXVulkanShaderModule.h>
@@ -104,64 +105,62 @@ public:
                 {uint32_t(1), gfx::GFXDescriptorType::CombinedImageSampler, gfx::GFXShaderStage::Fragment}
             }));
 
-        {
-            auto vertShaderCode = IOHelper::ReadFile("shader/lit.vert.spv");
-            auto fragShaderCode = IOHelper::ReadFile("shader/lit.pixel.spv");
+        //{
+        //    auto vertShaderCode = IOHelper::ReadFile("shader/Lit.vs.spv");
+        //    auto fragShaderCode = IOHelper::ReadFile("shader/Lit.ps.spv");
 
-            auto shaderModule = gfxapp->CreateShaderModule(vertShaderCode, fragShaderCode);
-            gfx::GFXGraphicsPipelineConfig cfg;
-            {
-                cfg.CullMode = gfx::GFXCullMode::Back;
-                cfg.DepthTestEnable = true;
-                cfg.DepthWriteEnable = true;
-                cfg.DepthCompareOp = gfx::GFXCompareMode::Less;
-            }
+        //    auto shaderModule = gfxapp->CreateShaderModule(vertShaderCode, fragShaderCode);
+        //    gfx::GFXShaderPassConfig cfg;
+        //    {
+        //        cfg.CullMode = gfx::GFXCullMode::Back;
+        //        cfg.DepthTestEnable = true;
+        //        cfg.DepthWriteEnable = true;
+        //        cfg.DepthCompareOp = gfx::GFXCompareMode::Less;
+        //    }
 
-            pipeline = std::static_pointer_cast<gfx::GFXVulkanGraphicsPipeline> 
-                (gfxapp->CreateGraphicsPipeline(cfg, gfx::GetBindingDescription(gfxapp), shaderModule, descriptorSetLayout));
-            
-
-        }
-
-
-        {
-            auto texbuf = IOHelper::ReadFile("textures/texture.png");
-            textureImage = std::static_pointer_cast<gfx::GFXVulkanTexture2D>(gfxapp->CreateTexture2DFromMemory((uint8_t*)texbuf.data(), texbuf.size()));
-        }
+        //    pipeline = std::static_pointer_cast<gfx::GFXVulkanGraphicsPipeline> 
+        //        (gfxapp->CreateGraphicsPipeline(cfg, gfx::GetBindingDescription(gfxapp), shaderModule, descriptorSetLayout));
+        //    
+        //}
 
 
-        vertexBuffer = gfxapp->CreateBuffer(gfx::GFXBufferUsage::Vertex, sizeof(vertices[0]) * vertices.size());
-        vertexBuffer->Fill(vertices.data());
+        //{
+        //    auto texbuf = IOHelper::ReadFile("textures/texture.png");
+        //    textureImage = std::static_pointer_cast<gfx::GFXVulkanTexture2D>(gfxapp->CreateTexture2DFromMemory((uint8_t*)texbuf.data(), texbuf.size()));
+        //}
 
-        indexBuffer = (gfx::GFXVulkanBuffer*)gfxapp->CreateBuffer(gfx::GFXBufferUsage::Index, sizeof(indices[0]) * indices.size());
-        indexBuffer->Fill(indices.data());
 
-        uniformBuffers = (gfx::GFXVulkanBuffer*)gfxapp->CreateBuffer(gfx::GFXBufferUsage::ConstantBuffer, sizeof(UniformBufferObject));
-        //uniformBuffers.push_back((gfx::GFXVulkanBuffer*)gfxapp->CreateBuffer(gfx::GFXBufferUsage::ConstantBuffer, sizeof(UniformBufferObject)));
+        //vertexBuffer = gfxapp->CreateBuffer(gfx::GFXBufferUsage::Vertex, sizeof(vertices[0]) * vertices.size());
+        //vertexBuffer->Fill(vertices.data());
+
+        //indexBuffer = (gfx::GFXVulkanBuffer*)gfxapp->CreateBuffer(gfx::GFXBufferUsage::Index, sizeof(indices[0]) * indices.size());
+        //indexBuffer->Fill(indices.data());
+
+        //uniformBuffers = (gfx::GFXVulkanBuffer*)gfxapp->CreateBuffer(gfx::GFXBufferUsage::ConstantBuffer, sizeof(UniformBufferObject));
 
         //create descriptor set
-        {
-            auto set0 = gfxapp->GetDescriptorManager()->GetDescriptorSet(descriptorSetLayout.get());
-            set0->AddDescriptor(0)->SetConstantBuffer(sizeof(UniformBufferObject), uniformBuffers);
-            set0->AddDescriptor(1)->SetTextureSampler2D(textureImage.get());
+        //{
+        //    auto set0 = gfxapp->GetDescriptorManager()->GetDescriptorSet(descriptorSetLayout.get());
+        //    set0->AddDescriptor(0)->SetConstantBuffer(sizeof(UniformBufferObject), uniformBuffers);
+        //    set0->AddDescriptor(1)->SetTextureSampler2D(textureImage.get());
 
-            auto set1 = gfxapp->GetDescriptorManager()->GetDescriptorSet(descriptorSetLayout.get());
-            set1->AddDescriptor(0)->SetConstantBuffer(sizeof(UniformBufferObject), uniformBuffers);
-            set1->AddDescriptor(1)->SetTextureSampler2D(textureImage.get());
+        //    auto set1 = gfxapp->GetDescriptorManager()->GetDescriptorSet(descriptorSetLayout.get());
+        //    set1->AddDescriptor(0)->SetConstantBuffer(sizeof(UniformBufferObject), uniformBuffers);
+        //    set1->AddDescriptor(1)->SetTextureSampler2D(textureImage.get());
 
-            set0->Submit();
-            set1->Submit();
-            descriptorSets.push_back(std::static_pointer_cast<gfx::GFXVulkanDescriptorSet>(set0));
-            //descriptorSets.push_back(std::static_pointer_cast<gfx::GFXVulkanDescriptorSet>(set1));
-        }
+        //    set0->Submit();
+        //    set1->Submit();
+        //    descriptorSets.push_back(std::static_pointer_cast<gfx::GFXVulkanDescriptorSet>(set0));
+        //    //descriptorSets.push_back(std::static_pointer_cast<gfx::GFXVulkanDescriptorSet>(set1));
+        //}
 
 
 
-        createSyncObjects();
+        //createSyncObjects();
 
         gfxapp->OnLoop = [this](float dt)
         {
-            drawFrame(dt);
+            //drawFrame(dt);
         };
         gfxapp->ExecLoop();
 
@@ -200,37 +199,6 @@ private:
     bool framebufferResized = false;
     uint32_t currentFrame = 0;
 
-
-
-    void cleanupSwapChain() {
-
-        for (size_t i = 0; i < gfxapp->GetVkSwapchainImageViews().size(); i++) {
-            vkDestroyImageView(gfxapp->GetVkDevice(), gfxapp->GetVkSwapchainImageViews()[i], nullptr);
-        }
-
-        vkDestroySwapchainKHR(gfxapp->GetVkDevice(), gfxapp->GetVkSwapchain(), nullptr);
-
-    }
-
-    void recreateSwapChain() {
-
-        int width = 0, height = 0;
-        glfwGetFramebufferSize(reinterpret_cast<GLFWwindow*>(gfxapp->GetWindowHandle()), &width, &height);
-        while (width == 0 || height == 0)
-        {
-            glfwGetFramebufferSize(reinterpret_cast<GLFWwindow*>(gfxapp->GetWindowHandle()), &width, &height);
-            glfwWaitEvents();
-        }
-
-        vkDeviceWaitIdle(gfxapp->GetVkDevice());
-
-        cleanupSwapChain();
-
-        gfxapp->InitSwapChain();
-        gfxapp->InitDepthTestBuffer();
-        gfxapp->InitFrameBuffers();
-
-    }
 
     void cleanup() {
 
@@ -369,79 +337,79 @@ private:
         ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.f));
         //ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.f, 0.f));
         ubo.view = glm::lookAtLH(glm::vec3(0.0f, 2.0f, -2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        ubo.proj = glm::perspectiveLH_ZO(glm::radians(45.0f), gfxapp->GetVkSwapChainExtent().width / (float)gfxapp->GetVkSwapChainExtent().height, 0.1f, 10.0f);
+        ubo.proj = glm::perspectiveLH_ZO(glm::radians(45.0f), gfxapp->GetVulkanViewport()->GetVkSwapChainExtent().width / (float)gfxapp->GetVulkanViewport()->GetVkSwapChainExtent().height, 0.1f, 10.0f);
 
         uniformBuffers->Fill(&ubo);
     }
 
-    void drawFrame(float)
-    {
+    //void drawFrame(float)
+    //{
 
-        updateUniformBuffer(currentFrame);
+    //    updateUniformBuffer(currentFrame);
 
-        //std::cout << "tick" << std::endl;
-        vkWaitForFences(gfxapp->GetVkDevice(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+    //    //std::cout << "tick" << std::endl;
+    //    vkWaitForFences(gfxapp->GetVkDevice(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
-        uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(gfxapp->GetVkDevice(), gfxapp->GetVkSwapchain(), UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-            recreateSwapChain();
-            return;
-        }
-        else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-            throw std::runtime_error("failed to acquire swap chain image!");
-        }
+    //    uint32_t imageIndex;
+    //    VkResult result = vkAcquireNextImageKHR(gfxapp->GetVkDevice(), gfxapp->GetVkSwapchain(), UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    //    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+    //        recreateSwapChain();
+    //        return;
+    //    }
+    //    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+    //        throw std::runtime_error("failed to acquire swap chain image!");
+    //    }
 
-        vkResetFences(gfxapp->GetVkDevice(), 1, &inFlightFences[currentFrame]);
+    //    vkResetFences(gfxapp->GetVkDevice(), 1, &inFlightFences[currentFrame]);
 
-        vkResetCommandBuffer(gfxapp->GetVkCommandBuffer(currentFrame), /*VkCommandBufferResetFlagBits*/ 0);
-        //recordCommandBuffer(gfxapp->GetVkCommandBuffer(currentFrame), imageIndex);
+    //    vkResetCommandBuffer(gfxapp->GetVkCommandBuffer(currentFrame), /*VkCommandBufferResetFlagBits*/ 0);
+    //    //recordCommandBuffer(gfxapp->GetVkCommandBuffer(currentFrame), imageIndex);
 
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    //    VkSubmitInfo submitInfo{};
+    //    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
-        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = waitSemaphores;
-        submitInfo.pWaitDstStageMask = waitStages;
+    //    VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
+    //    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    //    submitInfo.waitSemaphoreCount = 1;
+    //    submitInfo.pWaitSemaphores = waitSemaphores;
+    //    submitInfo.pWaitDstStageMask = waitStages;
 
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &gfxapp->GetVkCommandBuffer(currentFrame);
+    //    submitInfo.commandBufferCount = 1;
+    //    submitInfo.pCommandBuffers = &gfxapp->GetVkCommandBuffer(currentFrame);
 
-        VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemaphores;
+    //    VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
+    //    submitInfo.signalSemaphoreCount = 1;
+    //    submitInfo.pSignalSemaphores = signalSemaphores;
 
-        if (vkQueueSubmit(gfxapp->GetVkGraphicsQueue(), 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to submit draw command buffer!");
-        }
+    //    if (vkQueueSubmit(gfxapp->GetVkGraphicsQueue(), 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+    //        throw std::runtime_error("failed to submit draw command buffer!");
+    //    }
 
-        VkPresentInfoKHR presentInfo{};
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    //    VkPresentInfoKHR presentInfo{};
+    //    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-        presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = signalSemaphores;
+    //    presentInfo.waitSemaphoreCount = 1;
+    //    presentInfo.pWaitSemaphores = signalSemaphores;
 
-        VkSwapchainKHR swapChains[] = { gfxapp->GetVkSwapchain() };
-        presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = swapChains;
+    //    VkSwapchainKHR swapChains[] = { gfxapp->GetVkSwapchain() };
+    //    presentInfo.swapchainCount = 1;
+    //    presentInfo.pSwapchains = swapChains;
 
-        presentInfo.pImageIndices = &imageIndex;
+    //    presentInfo.pImageIndices = &imageIndex;
 
-        result = vkQueuePresentKHR(gfxapp->GetVkPresentQueue(), &presentInfo);
-        vkQueueWaitIdle(gfxapp->GetVkPresentQueue());
+    //    result = vkQueuePresentKHR(gfxapp->GetVkPresentQueue(), &presentInfo);
+    //    vkQueueWaitIdle(gfxapp->GetVkPresentQueue());
 
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
-            framebufferResized = false;
-            recreateSwapChain();
-        }
-        else if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to present swap chain image!");
-        }
+    //    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
+    //        framebufferResized = false;
+    //        recreateSwapChain();
+    //    }
+    //    else if (result != VK_SUCCESS) {
+    //        throw std::runtime_error("failed to present swap chain image!");
+    //    }
 
-        currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-    }
+    //    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    //}
 
 
 };

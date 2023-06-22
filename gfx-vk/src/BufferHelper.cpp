@@ -123,9 +123,6 @@ namespace gfx
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 
-        VkFormatProperties formatProp;
-        vkGetPhysicalDeviceFormatProperties(app->GetVkPhysicalDevice(), VkFormat::VK_FORMAT_R8G8B8_UINT, &formatProp);
-
         if (vkCreateImage(app->GetVkDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create image!");
@@ -139,7 +136,8 @@ namespace gfx
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = gfx::BufferHelper::FindMemoryType(app, memRequirements.memoryTypeBits, properties);
 
-        if (vkAllocateMemory(app->GetVkDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+        if (vkAllocateMemory(app->GetVkDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
+        {
             throw std::runtime_error("failed to allocate image memory!");
         }
         //Í¼Ïñ¹ØÁªÄÚ´æ
@@ -279,16 +277,18 @@ namespace gfx
         return imageView;
     }
 
-    VkSampler BufferHelper::CreateTextureSampler(GFXVulkanApplication* app)
+    VkSampler BufferHelper::CreateTextureSampler(
+        GFXVulkanApplication* app, 
+        VkFilter filter, VkSamplerAddressMode addressMode)
     {
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_LINEAR;
-        samplerInfo.minFilter = VK_FILTER_LINEAR;
+        samplerInfo.magFilter = filter;
+        samplerInfo.minFilter = filter;
 
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeU = addressMode;
+        samplerInfo.addressModeV = addressMode;
+        samplerInfo.addressModeW = addressMode;
 
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(app->GetVkPhysicalDevice(), &properties);

@@ -38,7 +38,10 @@ namespace gfx
 
         static void CopyBufferToImage(GFXVulkanApplication* app, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
         static VkImageView CreateImageView(GFXVulkanApplication* app, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-        static VkSampler CreateTextureSampler(GFXVulkanApplication* app);
+        static VkSampler CreateTextureSampler(
+            GFXVulkanApplication* app, 
+            VkFilter filter = VkFilter::VK_FILTER_LINEAR, 
+            VkSamplerAddressMode addressMode = VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 
         static VkFormat FindDepthFormat(GFXVulkanApplication* app);
     };

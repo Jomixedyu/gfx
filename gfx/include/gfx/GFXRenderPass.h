@@ -2,9 +2,9 @@
 
 namespace gfx
 {
-    class GFXRenderPass
+    class GFXRenderPassLayout
     {
     public:
-        virtual ~GFXRenderPass() {}
+        virtual ~GFXRenderPassLayout() {}
     };
 }

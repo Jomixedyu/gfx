@@ -24,18 +24,19 @@ namespace gfx
         GreaterOrEqual,
         Always
     };
-    struct GFXGraphicsPipelineConfig
+    struct GFXShaderPassConfig
     {
     public:
         GFXCullMode CullMode;
         bool DepthTestEnable;
         bool DepthWriteEnable;
         GFXCompareMode DepthCompareOp;
+        bool StencilTestEnable;
     };
 
-    class GFXGraphicsPipeline
+    class GFXShaderPass
     {
     public:
-        virtual ~GFXGraphicsPipeline() {}
+        virtual ~GFXShaderPass() {}
     };
 }

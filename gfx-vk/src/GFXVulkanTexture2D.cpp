@@ -1,3 +1,4 @@
+#include "GFXVulkanTexture2D.h"
 #include <gfx-vk/BufferHelper.h>
 #include <gfx-vk/GFXVulkanTexture2D.h>
 #include <gfx-vk/GFXVulkanCommandBuffer.h>
@@ -19,24 +20,20 @@ namespace gfx
         }
     }
 
-    void GFXVulkanTexture2D::Init(
+    GFXVulkanTexture2D::GFXVulkanTexture2D(
         GFXVulkanApplication* app,
         const uint8_t* imageData,
         int32_t width, int32_t height, int32_t channel,
         VkFormat format,
-        bool enableReadWrite)
+        bool enableReadWrite, const GFXSamplerConfig& samplerCfg)
+        :
+        base(width, height, channel, samplerCfg, enableReadWrite),
+        m_app(app), m_imageFormat(format)
     {
         //读取图片至暂存buffer
         //创建图片资源
         //变换到最佳布局
         //暂存buffer拷贝到图像资源
-        m_app = app;
-
-        m_enableReadWrite = enableReadWrite;
-        m_width = width;
-        m_height = height;
-        m_channel = channel;
-        m_imageFormat = format;
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
@@ -70,6 +67,49 @@ namespace gfx
 
         m_inited = true;
     }
+    static VkFilter _GetVkFilter(GFXSamplerFilter filter)
+    {
+        switch (filter)
+        {
+        case gfx::GFXSamplerFilter::Nearest: return VkFilter::VK_FILTER_NEAREST;
+        case gfx::GFXSamplerFilter::Linear: return VkFilter::VK_FILTER_LINEAR;
+        case gfx::GFXSamplerFilter::Cubic: return VkFilter::VK_FILTER_CUBIC_IMG;
+        default:
+            assert(false);
+            break;
+        }
+        return {};
+    }
+    static VkSamplerAddressMode _GetVkAddressMode(GFXSamplerAddressMode mode)
+    {
+        switch (mode)
+        {
+        case gfx::GFXSamplerAddressMode::Repeat: return VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        case gfx::GFXSamplerAddressMode::MirroredRepeat: return VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        case gfx::GFXSamplerAddressMode::ClampToEdge: return VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        default:
+            assert(false);
+            break;
+        }
+        return {};
+    }
+    GFXVulkanTexture2D::GFXVulkanTexture2D(
+        GFXVulkanApplication* app,
+        int32_t width, int32_t height, int32_t channel,
+        VkFormat format, VkImage image, VkDeviceMemory memory, VkImageView imageView,
+        bool enableReadWrite, const GFXSamplerConfig& samplerCfg)
+        : 
+        base(width, height, channel, samplerCfg, enableReadWrite),
+        m_app(app), m_textureImage(image), m_textureImageMemory(memory), m_textureImageView(imageView),
+        m_imageFormat(format)
+    {
+        auto filter = _GetVkFilter(samplerCfg.Filter);
+        auto addressMode = _GetVkAddressMode(samplerCfg.AddressMode);
+
+        m_textureSampler = BufferHelper::CreateTextureSampler(m_app, filter, addressMode);
+        m_inited = true;
+    }
+
     const uint8_t* GFXVulkanTexture2D::GetData() const
     {
         return nullptr;
@@ -101,7 +141,8 @@ namespace gfx
         return newData;
     }
     std::shared_ptr<GFXVulkanTexture2D> GFXVulkanTexture2D::CreateFromMemory(
-        GFXVulkanApplication* app, const uint8_t* fileData, int32_t length, bool enableReadWrite, GFXTextureFormat format)
+        GFXVulkanApplication* app, const uint8_t* fileData, int32_t length, bool enableReadWrite, 
+        GFXTextureFormat format, const GFXSamplerConfig& samplerCfg)
     {
         int x, y, channel;
         std::vector<uint8_t> buffer;
@@ -131,8 +172,7 @@ namespace gfx
             break;
         }
 
-        auto tex = new GFXVulkanTexture2D();
-        tex->Init(app, buffer.data(), x, y, channel, _GetVkFormat(format), enableReadWrite);
+        auto tex = new GFXVulkanTexture2D(app, buffer.data(), x, y, channel, _GetVkFormat(format), enableReadWrite, samplerCfg);
 
         return std::shared_ptr<GFXVulkanTexture2D>(tex);
     }
