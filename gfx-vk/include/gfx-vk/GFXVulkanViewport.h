@@ -40,13 +40,19 @@ namespace gfx
         VkImageView GetVkSwapChainImageView() const { return m_swapChainImageViews[m_currentFrame]; }
         VkFramebuffer GetVkSwapChainFrameBuffer() const { return m_swapChainFramebuffers[m_currentFrame]; }
         VkExtent2D GetVkSwapChainExtent() const { return m_swapChainExtent; }
-        VkFormat GetCkSwapChainImageFormat() const { return m_swapChainImageFormat; }
+        VkFormat GetVkSwapChainImageFormat() const { return m_swapChainImageFormat; }
         GFXVulkanCommandBuffer* GetVkCommandBuffer() const { return m_commandBuffers[m_currentFrame].get(); }
         GFXVulkanApplication* GetApplication() const { return m_app; }
+        VkResult AcquireNextImage(VkSemaphore semaphore, uint32_t* outIndex);
     public:
         virtual GFXRenderTarget* GetRenderTarget() override;
     protected:
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+
+        std::vector<VkSemaphore> m_imageAvailableSemaphores;
+        std::vector<VkSemaphore> m_renderFinishedSemaphores;
+        std::vector<VkFence> m_inFlightFences;
+        bool m_framebufferResized = false;
 
         VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
         std::vector<VkImage> m_swapChainImages;
@@ -56,7 +62,9 @@ namespace gfx
 
         VkRenderPass m_renderPass = VK_NULL_HANDLE;
 
-        GFXVulkanTexture2D* m_depthTex;
+        std::vector<GFXVulkanRenderTarget*> m_renderTargets;
+
+        GFXVulkanTexture2D* m_depthTex = nullptr;
 
         VkFormat m_swapChainImageFormat;
         VkExtent2D m_swapChainExtent;
@@ -66,6 +74,5 @@ namespace gfx
         GFXVulkanApplication* m_app;
         GLFWwindow* m_window = nullptr;
 
-        GFXVulkanRenderTarget* m_renderTarget;
     };
 }

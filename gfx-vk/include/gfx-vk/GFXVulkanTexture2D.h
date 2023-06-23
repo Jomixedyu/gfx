@@ -13,7 +13,7 @@ namespace gfx
         using DataDeleter = void(*)(uint8_t*);
     public:
         static std::shared_ptr<GFXVulkanTexture2D> CreateFromMemory(
-            GFXVulkanApplication* app, const uint8_t* fileData, int32_t length, bool enableReadWrite, 
+            GFXVulkanApplication* app, const uint8_t* fileData, int32_t length, bool enableReadWrite,
             GFXTextureFormat format, const GFXSamplerConfig& samplerCfg);
 
     public:
@@ -24,14 +24,17 @@ namespace gfx
             const uint8_t* imageData,
             int32_t width, int32_t height, int32_t channel,
             VkFormat format,
-            bool enableReadWrite, 
+            bool enableReadWrite,
             const GFXSamplerConfig& samplerCfg);
 
+        //managed
         GFXVulkanTexture2D(GFXVulkanApplication* app, int32_t width, int32_t height, int32_t channel,
-            VkFormat format, VkImage image, VkDeviceMemory memory, VkImageView imageView, 
-            bool enableReadWrite, 
+            VkFormat format, VkImage image, VkDeviceMemory memory, VkImageView imageView, bool enableReadWrite, VkImageLayout layout,
             const GFXSamplerConfig& samplerCfg);
 
+        //view
+        GFXVulkanTexture2D(GFXVulkanApplication* app, int32_t width, int32_t height, int32_t channel,
+            VkFormat format, VkImage image, VkImageView imageView, VkImageLayout layout);
 
         GFXVulkanTexture2D(const GFXVulkanTexture2D&) = delete;
     public:
@@ -42,15 +45,18 @@ namespace gfx
         VkImageView GetVkImageView() const { return m_textureImageView; }
         VkSampler GetVkSampler() const { return m_textureSampler; }
         VkFormat GetVkImageFormat() const { return m_imageFormat; }
+        VkImageLayout GetVkImageLayout() const { return m_imageLayout; }
     protected:
         GFXVulkanApplication* m_app;
 
         VkImage m_textureImage;
+        VkImageLayout m_imageLayout;
         VkDeviceMemory m_textureImageMemory;
         VkImageView m_textureImageView;
         VkSampler m_textureSampler;
         VkFormat m_imageFormat;
 
+        bool m_isView = false;
         bool m_inited = false;
     };
 }

@@ -62,6 +62,7 @@ namespace gfx
 
         virtual GFXViewport* GetViewport() override { return m_viewport; }
         GFXVulkanViewport* GetVulkanViewport() { return m_viewport; }
+
     protected:
         static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
     private:

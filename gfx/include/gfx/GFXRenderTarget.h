@@ -1,8 +1,9 @@
 #pragma once
+#include "GFXTexture.h"
 
 namespace gfx
 {
-	class GFXRenderTarget
+	class GFXRenderTarget : public GFXTexture
 	{
 	public:
 		virtual ~GFXRenderTarget() {}

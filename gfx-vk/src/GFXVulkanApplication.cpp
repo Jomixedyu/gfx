@@ -1,4 +1,5 @@
 #include "GFXVulkanApplication.h"
+#include "GFXVulkanApplication.h"
 #include <glfw/include/GLFW/glfw3.h>
 #include <stdexcept>
 #include <iostream>

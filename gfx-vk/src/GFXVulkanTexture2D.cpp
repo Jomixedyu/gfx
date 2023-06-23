@@ -1,4 +1,5 @@
 #include "GFXVulkanTexture2D.h"
+#include "GFXVulkanTexture2D.h"
 #include <gfx-vk/BufferHelper.h>
 #include <gfx-vk/GFXVulkanTexture2D.h>
 #include <gfx-vk/GFXVulkanCommandBuffer.h>
@@ -13,10 +14,13 @@ namespace gfx
     {
         if (m_inited)
         {
-            vkDestroyImage(m_app->GetVkDevice(), m_textureImage, nullptr);
-            vkFreeMemory(m_app->GetVkDevice(), m_textureImageMemory, nullptr);
+            if (!m_isView)
+            {
+                vkDestroyImage(m_app->GetVkDevice(), m_textureImage, nullptr);
+                vkFreeMemory(m_app->GetVkDevice(), m_textureImageMemory, nullptr);
+                vkDestroyImageView(m_app->GetVkDevice(), m_textureImageView, nullptr);
+            }
             vkDestroySampler(m_app->GetVkDevice(), m_textureSampler, nullptr);
-            vkDestroyImageView(m_app->GetVkDevice(), m_textureImageView, nullptr);
         }
     }
 
@@ -58,6 +62,7 @@ namespace gfx
         BufferHelper::CopyBufferToImage(app, stagingBuffer, m_textureImage, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         //变换为采样最佳
         BufferHelper::TransitionImageLayout(app, m_textureImage, m_imageFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        m_imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         vkDestroyBuffer(app->GetVkDevice(), stagingBuffer, nullptr);
         vkFreeMemory(app->GetVkDevice(), stagingBufferMemory, nullptr);
@@ -97,16 +102,27 @@ namespace gfx
         GFXVulkanApplication* app,
         int32_t width, int32_t height, int32_t channel,
         VkFormat format, VkImage image, VkDeviceMemory memory, VkImageView imageView,
-        bool enableReadWrite, const GFXSamplerConfig& samplerCfg)
+        bool enableReadWrite, VkImageLayout layout, const GFXSamplerConfig& samplerCfg)
         : 
         base(width, height, channel, samplerCfg, enableReadWrite),
         m_app(app), m_textureImage(image), m_textureImageMemory(memory), m_textureImageView(imageView),
-        m_imageFormat(format)
+        m_imageLayout(layout), m_imageFormat(format)
     {
         auto filter = _GetVkFilter(samplerCfg.Filter);
         auto addressMode = _GetVkAddressMode(samplerCfg.AddressMode);
 
         m_textureSampler = BufferHelper::CreateTextureSampler(m_app, filter, addressMode);
+        m_inited = true;
+    }
+
+    GFXVulkanTexture2D::GFXVulkanTexture2D(
+        GFXVulkanApplication* app, int32_t width, int32_t height, int32_t channel, 
+        VkFormat format, VkImage image, VkImageView imageView, VkImageLayout layout)
+        :
+        base(width, height, channel, {}, false),
+        m_app(app), m_textureImage(image), m_textureImageMemory(VK_NULL_HANDLE), m_textureImageView(imageView), m_imageLayout(layout), m_isView(true)
+    {
+        m_textureSampler = BufferHelper::CreateTextureSampler(m_app, VkFilter::VK_FILTER_LINEAR, VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT);
         m_inited = true;
     }
 

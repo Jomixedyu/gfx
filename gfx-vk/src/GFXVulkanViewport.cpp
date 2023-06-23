@@ -1,4 +1,5 @@
 #include "GFXVulkanViewport.h"
+#include "GFXVulkanViewport.h"
 #include "GFXVulkanApplication.h"
 #include "PhysicalDeviceHelper.h"
 #include "BufferHelper.h"
@@ -96,6 +97,28 @@ namespace gfx
         this->InitCommandBuffers();
         this->InitDepthTestBuffer();
         this->InitFrameBuffers();
+
+        m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+
+        VkSemaphoreCreateInfo semaphoreInfo{};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        {
+            if (vkCreateSemaphore(app->GetVkDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+                vkCreateSemaphore(app->GetVkDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+                vkCreateFence(app->GetVkDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
+            {
+                throw std::runtime_error("failed to create synchronization objects for a frame!");
+            }
+        }
+
     }
     GFXVulkanViewport::~GFXVulkanViewport()
     {
@@ -145,7 +168,7 @@ namespace gfx
         auto depthImageView = BufferHelper::CreateImageView(m_app, depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
         BufferHelper::TransitionImageLayout(m_app, depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
-        m_depthTex = new GFXVulkanTexture2D(m_app, extent.width, extent.height, 1, depthFormat, depthImage, depthMemory, depthImageView, false, GFXSamplerConfig{});
+        m_depthTex = new GFXVulkanTexture2D(m_app, extent.width, extent.height, 1, depthFormat, depthImage, depthMemory, depthImageView, false, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, GFXSamplerConfig{});
     }
 
     void GFXVulkanViewport::TermDepthTestBuffer()
@@ -279,7 +302,12 @@ namespace gfx
             {
                 throw std::runtime_error("failed to create image views!");
             }
+
+            auto tex2d = new GFXVulkanTexture2D(m_app, extent.width, extent.height, 4, m_swapChainImageFormat, m_swapChainImages[i], m_swapChainImageViews[i], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+            m_renderTargets.push_back(new GFXVulkanRenderTarget(m_app, tex2d, m_swapChainImageFormat));
         }
+
+
     }
 
     void GFXVulkanViewport::TermSwapChain()
@@ -310,8 +338,13 @@ namespace gfx
         InitDepthTestBuffer();
         InitFrameBuffers();
     }
+    VkResult GFXVulkanViewport::AcquireNextImage(VkSemaphore semaphore, uint32_t* outIndex)
+    {
+        return vkAcquireNextImageKHR(m_app->GetVkDevice(), GetVkSwapChain(), UINT64_MAX, semaphore, VK_NULL_HANDLE, outIndex);
+    }
+
     GFXRenderTarget* gfx::GFXVulkanViewport::GetRenderTarget()
     {
-        return m_renderTarget;
+        return m_renderTargets[m_currentFrame];
     }
 }

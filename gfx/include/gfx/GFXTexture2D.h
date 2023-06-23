@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "GFXTexture.h"
 
 namespace gfx
 {
@@ -11,8 +12,6 @@ namespace gfx
         R8G8B8A8,
         R8G8B8A8_SRGB,
     };
-
-
 
     enum class GFXSamplerFilter
     {
@@ -33,7 +32,7 @@ namespace gfx
         GFXSamplerAddressMode AddressMode;
     };
 
-    class GFXTexture2D
+    class GFXTexture2D : public GFXTexture
     {
     protected:
         GFXTexture2D(int32_t width, int32_t height, int32_t channel, GFXSamplerConfig cfg, bool enableReadwrite)

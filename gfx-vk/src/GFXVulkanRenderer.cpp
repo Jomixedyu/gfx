@@ -10,8 +10,6 @@ namespace gfx
     GFXVulkanRenderer::GFXVulkanRenderer(GFXVulkanApplication* app)
         : m_app(app)
     {
-        m_renderTarget = new GFXVulkanRenderTarget(app, VkFormat::VK_FORMAT_R8G8B8A8_SRGB);
-
         m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
@@ -40,7 +38,7 @@ namespace gfx
         vkWaitForFences(m_app->GetVkDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(m_app->GetVkDevice(), m_app->GetVulkanViewport()->GetVkSwapChain(), UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
+        auto result = m_app->GetVulkanViewport()->AcquireNextImage(m_imageAvailableSemaphores[m_currentFrame], &imageIndex);
         if (result == VK_ERROR_OUT_OF_DATE_KHR)
         {
             m_app->GetVulkanViewport()->ReInitSwapChain();
