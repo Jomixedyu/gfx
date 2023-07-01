@@ -13,5 +13,7 @@ namespace gfx
         virtual GFXCommandBuffer& AddCommandBuffer() = 0;
         virtual GFXCommandBuffer& GetCommandBuffer(size_t index) = 0;
         virtual void Submit() = 0;
+
+        float DeltaTime;
     };
 }

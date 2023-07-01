@@ -16,7 +16,7 @@ namespace gfx
         GFXVulkanRenderer(GFXVulkanApplication* app);
         ~GFXVulkanRenderer();
     public:
-        void Render();
+        void Render(float deltaTime);
 
     protected:
         void RecordCommandBuffer(GFXCommandBuffer* commandBuffer, const std::vector<GFXRenderTarget*>& renderTarget);

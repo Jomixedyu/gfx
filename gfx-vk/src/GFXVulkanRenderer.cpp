@@ -13,7 +13,7 @@ namespace gfx
         : m_app(app)
     {
     }
-    void GFXVulkanRenderer::Render()
+    void GFXVulkanRenderer::Render(float deltaTime)
     {
         auto viewport = m_app->GetVulkanViewport();
 
@@ -36,6 +36,8 @@ namespace gfx
         GFXVulkanRenderContext renderContext(m_app);
 
         renderContext.SetQueue(viewport->GetQueue());
+        renderContext.DeltaTime = deltaTime;
+
         auto renderTargets = std::vector{ viewport->GetRenderTarget() };
         m_app->GetRenderPipeline()->OnRender(&renderContext, renderTargets);
 

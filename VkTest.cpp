@@ -73,16 +73,11 @@ public:
         auto& buffer = static_cast<GFXVulkanCommandBuffer&>(context->AddCommandBuffer());
         buffer.Begin();
         buffer.SetRenderTarget(rt);
-        static int a = 1;
-        a = (a + 1) % 2;
-        if (a == 0)
-        {
-            buffer.CmdClearColor(0, 1, 0, 1);
-        }
-        else
-        {
-            buffer.CmdClearColor(1, 1, 0, 1);
-        }
+
+        static float time = 0;
+        time += context->DeltaTime *4;
+        buffer.CmdClearColor((std::sin(time)+1)/2, (std::cos(time)+1)/2, 0, 1);
+
         buffer.CmdBeginRenderTarget();
         buffer.CmdSetViewport(0, 0, 1280, 720);
         buffer.CmdEndRenderTarget();

@@ -444,7 +444,7 @@ namespace gfx
     }
     void GFXVulkanApplication::TickRender(float deltaTime)
     {
-        m_renderer->Render();
+        m_renderer->Render(deltaTime);
     }
 
     void GFXVulkanApplication::RequestStop()
