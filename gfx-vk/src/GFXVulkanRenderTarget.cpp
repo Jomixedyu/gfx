@@ -2,14 +2,21 @@
 #include "GFXVulkanApplication.h"
 #include "PhysicalDeviceHelper.h"
 #include "BufferHelper.h"
+#include <array>
+#include <cassert>
 
 namespace gfx
 {
     GFXVulkanRenderTarget::GFXVulkanRenderTarget(
         GFXVulkanApplication* app, 
-        GFXVulkanTexture2D* tex, VkFormat format)
-        : m_app(app), m_tex2d(tex)
+        GFXVulkanTexture2D* tex, VkFormat format, GFXVulkanTexture2D* depth, VkFormat depthFormat)
+        : m_app(app), m_tex2d(tex), m_depthTex(depth)
     {
+        auto usable = tex ? tex : depth;
+        assert(usable);
+        m_width = usable->GetWidth();
+        m_height = usable->GetHeight();
+        
         this->InitRenderPass();
     }
 
@@ -19,7 +26,8 @@ namespace gfx
         {
             colorAttachment.format = m_tex2d->GetVkImageFormat();
             colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-            colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            //colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -30,7 +38,8 @@ namespace gfx
         {
             depthAttachment.format = BufferHelper::FindDepthFormat(m_app);
             depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-            depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            //depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -66,6 +75,7 @@ namespace gfx
         dependency.srcAccessMask = 0;
         dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
         VkAttachmentDescription attachments[2] = { colorAttachment, depthAttachment };
 
@@ -84,6 +94,28 @@ namespace gfx
         {
             throw std::runtime_error("failed to create render pass!");
         }
+
+
+        std::array<VkImageView, 2> fbAttachments =
+        {
+            m_tex2d->GetVkImageView(),
+            m_depthTex->GetVkImageView()
+        };
+
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = m_renderPass;
+        framebufferInfo.attachmentCount = static_cast<uint32_t>(fbAttachments.size());
+        framebufferInfo.pAttachments = fbAttachments.data();
+        framebufferInfo.width = m_width;
+        framebufferInfo.height = m_height;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(m_app->GetVkDevice(), &framebufferInfo, nullptr, &m_frameBuffer) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create framebuffer!");
+        }
+
     }
 
     GFXVulkanRenderTarget::~GFXVulkanRenderTarget()

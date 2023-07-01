@@ -1,6 +1,7 @@
 #include <gfx-vk/BufferHelper.h>
 #include <gfx-vk/GFXVulkanCommandBuffer.h>
 #include <gfx/GFXCommandBufferScope.h>
+#include "GFXVulkanCommandBufferPool.h"
 
 #include <stdexcept>
 
@@ -60,42 +61,34 @@ namespace gfx
 
     void BufferHelper::TransferBuffer(GFXVulkanApplication* app, VkBuffer src, VkBuffer dest, VkDeviceSize size)
     {
-        VkCommandBuffer commandBuffer;
-        {
-            VkCommandBufferAllocateInfo allocInfo{};
-            allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-            allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            allocInfo.commandPool = app->GetVkCommandPool();
-            allocInfo.commandBufferCount = 1;
-            vkAllocateCommandBuffers(app->GetVkDevice(), &allocInfo, &commandBuffer);
-        }
+        GFXVulkanCommandBuffer buffer(app);
 
         VkCommandBufferBeginInfo beginInfo{};
         {
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
             beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         }
-        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+        buffer.Begin();
         {
             VkBufferCopy copyRegion{};
             copyRegion.srcOffset = 0;
             copyRegion.dstOffset = 0;
             copyRegion.size = size;
-            vkCmdCopyBuffer(commandBuffer, src, dest, 1, &copyRegion);
+            vkCmdCopyBuffer(buffer.GetVkCommandBuffer(), src, dest, 1, &copyRegion);
         }
-        vkEndCommandBuffer(commandBuffer);
+        buffer.End();
 
         VkSubmitInfo submitInfo{};
         {
             submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
             submitInfo.commandBufferCount = 1;
-            submitInfo.pCommandBuffers = &commandBuffer;
+            submitInfo.pCommandBuffers = &buffer.GetVkCommandBuffer();
         }
 
         vkQueueSubmit(app->GetVkGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
         vkQueueWaitIdle(app->GetVkGraphicsQueue());
 
-        vkFreeCommandBuffers(app->GetVkDevice(), app->GetVkCommandPool(), 1, &commandBuffer);
+
     }
 
     void BufferHelper::DestroyBuffer(GFXVulkanApplication* app, VkBuffer buffer, VkDeviceMemory mem)

@@ -120,7 +120,8 @@ namespace gfx
         VkFormat format, VkImage image, VkImageView imageView, VkImageLayout layout)
         :
         base(width, height, channel, {}, false),
-        m_app(app), m_textureImage(image), m_textureImageMemory(VK_NULL_HANDLE), m_textureImageView(imageView), m_imageLayout(layout), m_isView(true)
+        m_app(app), m_textureImage(image), m_textureImageMemory(VK_NULL_HANDLE), m_imageFormat(format),
+        m_textureImageView(imageView), m_imageLayout(layout), m_isView(true)
     {
         m_textureSampler = BufferHelper::CreateTextureSampler(m_app, VkFilter::VK_FILTER_LINEAR, VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT);
         m_inited = true;

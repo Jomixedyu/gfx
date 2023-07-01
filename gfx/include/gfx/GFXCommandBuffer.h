@@ -17,7 +17,6 @@ namespace gfx
         GFXCommandBuffer(GFXCommandBuffer&&) = delete;
         virtual ~GFXCommandBuffer() {}
 
-        virtual void CmdClear(float r, float g, float b, float a, bool depth, bool stencil) = 0;
         virtual void CmdBindPipeline(GFXShaderPass* pipeline) = 0;
         virtual void CmdBindVertexBuffers() = 0;
         virtual void CmdBindIndexBuffer() = 0;

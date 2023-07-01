@@ -1,25 +1,31 @@
 #include "GFXVulkanCommandBuffer.h"
-#include "GFXVulkanCommandBuffer.h"
-#include <gfx-vk/GFXVulkanCommandBuffer.h>
-#include <gfx-vk/GFXVulkanApplication.h>
+#include "GFXVulkanApplication.h"
+#include "GFXVulkanCommandBufferPool.h"
 
 namespace gfx
 {
     GFXVulkanCommandBuffer::GFXVulkanCommandBuffer(GFXVulkanApplication* app)
         : m_app(app)
     {
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = m_app->GetVkCommandPool();
-        allocInfo.commandBufferCount = 1;
-
-        vkAllocateCommandBuffers(m_app->GetVkDevice(), &allocInfo, &m_cmdBuffer);
+        m_cmdBuffer = app->GetCommandBufferPool()->GetCommandBuffer();
     }
     GFXVulkanCommandBuffer::~GFXVulkanCommandBuffer()
     {
-        vkFreeCommandBuffers(m_app->GetVkDevice(), m_app->GetVkCommandPool(), 1, &m_cmdBuffer);
+        if (m_cmdBuffer != VK_NULL_HANDLE)
+        {
+            m_app->GetCommandBufferPool()->ReleaseCommandBuffer(m_cmdBuffer);
+            m_cmdBuffer = VK_NULL_HANDLE;
+        }
     }
+    GFXVulkanCommandBuffer::GFXVulkanCommandBuffer(GFXVulkanCommandBuffer&& r) noexcept
+    {
+        m_app = r.m_app;
+        m_cmdBuffer = r.m_cmdBuffer;
+        m_rt = r.m_rt;
+
+        r.m_cmdBuffer = VK_NULL_HANDLE;
+    }
+
     GFXApplication* GFXVulkanCommandBuffer::GetApplication() const
     {
         return m_app;
@@ -39,38 +45,31 @@ namespace gfx
         vkEndCommandBuffer(m_cmdBuffer);
 
 
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &m_cmdBuffer;
+        //VkSubmitInfo submitInfo{};
+        //submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        //submitInfo.commandBufferCount = 1;
+        //submitInfo.pCommandBuffers = &m_cmdBuffer;
 
-        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        //VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
-        if (m_imageSemaphore)
-        {
-            submitInfo.waitSemaphoreCount = 1;
-            submitInfo.pWaitSemaphores = &m_imageSemaphore;
-            submitInfo.pWaitDstStageMask = waitStages;
-        }
-        if (m_renderSemaphore)
-        {
-            submitInfo.signalSemaphoreCount = 1;
-            submitInfo.pSignalSemaphores = &m_renderSemaphore;
-        }
+        //if (m_imageSemaphore)
+        //{
+        //    submitInfo.waitSemaphoreCount = 1;
+        //    submitInfo.pWaitSemaphores = &m_imageSemaphore;
+        //    submitInfo.pWaitDstStageMask = waitStages;
+        //}
+        //if (m_renderSemaphore)
+        //{
+        //    submitInfo.signalSemaphoreCount = 1;
+        //    submitInfo.pSignalSemaphores = &m_renderSemaphore;
+        //}
 
-        vkQueueSubmit(m_app->GetVkGraphicsQueue(), 1, &submitInfo, m_inFlightFence);
+        //vkQueueSubmit(m_app->GetVkGraphicsQueue(), 1, &submitInfo, m_inFlightFence);
 
-        vkQueueWaitIdle(m_app->GetVkGraphicsQueue());
-
-    }
-
-    void GFXVulkanCommandBuffer::CmdClear(float r, float g, float b, float a, bool depth, bool stencil)
-    {
-        VkClearValue colorValue;
-        colorValue.color = { {r, g, b, a} };
-        VkClearValue depthValue;
+        //vkQueueWaitIdle(m_app->GetVkGraphicsQueue());
 
     }
+
     void GFXVulkanCommandBuffer::CmdBindPipeline(GFXShaderPass* pipeline) {}
     void GFXVulkanCommandBuffer::CmdBindVertexBuffers() {}
     void GFXVulkanCommandBuffer::CmdBindIndexBuffer() {}

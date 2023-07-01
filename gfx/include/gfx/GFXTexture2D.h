@@ -43,9 +43,9 @@ namespace gfx
     public:
         virtual ~GFXTexture2D() {}
     public:
-        int32_t GetWidth() const { return m_width; }
-        int32_t GetHeight() const { return m_height; }
-        int32_t GetChannelCount() const { return m_channel; }
+        virtual int32_t GetWidth() const override { return m_width; }
+        virtual int32_t GetHeight() const override { return m_height; }
+        virtual int32_t GetChannelCount() const { return m_channel; }
         virtual const uint8_t* GetData() const = 0;
     protected:
         bool m_enableReadWrite;

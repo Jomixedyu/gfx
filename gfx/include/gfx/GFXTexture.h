@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 namespace gfx
 {
@@ -9,5 +10,10 @@ namespace gfx
         {
 
         }
+
+    public:
+        virtual int32_t GetWidth() const = 0;
+        virtual int32_t GetHeight() const = 0;
+
     };
 }

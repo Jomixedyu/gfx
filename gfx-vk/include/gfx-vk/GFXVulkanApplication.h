@@ -58,11 +58,23 @@ namespace gfx
         const VkSurfaceKHR& GetVkSurface() const { return m_surface; }
         const VkQueue& GetVkGraphicsQueue() const { return m_graphicsQueue; }
         const VkQueue& GetVkPresentQueue() const { return m_presentQueue; }
-        const VkCommandPool& GetVkCommandPool() const { return m_commandPool; }
+        //const VkCommandPool& GetVkCommandPool() const { return m_commandPool; }
 
         virtual GFXViewport* GetViewport() override { return m_viewport; }
         GFXVulkanViewport* GetVulkanViewport() { return m_viewport; }
 
+        void SetRenderPipeline(GFXRenderPipeline* pipeline)
+        {
+            m_renderPipeline = pipeline;
+        }
+        GFXRenderPipeline* GetRenderPipeline() const
+        {
+            return m_renderPipeline;
+        }
+        class GFXVulkanCommandBufferPool* GetCommandBufferPool() const
+        {
+            return m_cmdPool;
+        }
     protected:
         static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
     private:
@@ -84,14 +96,14 @@ namespace gfx
         VkInstance m_instance = VK_NULL_HANDLE;
         VkSurfaceKHR m_surface = VK_NULL_HANDLE;
         VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
-        VkCommandPool m_commandPool = VK_NULL_HANDLE;
+        //VkCommandPool m_commandPool = VK_NULL_HANDLE;
 
         VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
         VkDevice m_device = VK_NULL_HANDLE;
 
         GFXVulkanViewport* m_viewport;
 
-
+        GFXRenderPipeline* m_renderPipeline = nullptr;
 
         VkQueue m_graphicsQueue = VK_NULL_HANDLE;
         VkQueue m_presentQueue = VK_NULL_HANDLE;
@@ -99,10 +111,14 @@ namespace gfx
         class GFXVulkanDescriptorManager* m_descriptorManager = nullptr;
         class GFXVulkanRenderer* m_renderer = nullptr;
 
+        class GFXVulkanCommandBufferPool* m_cmdPool = nullptr;
+
         array_list<char*> m_extensions;
         size_t m_count = 0;
 
         bool m_isAppEnding = false;
+
+        uint32_t m_framecount = 0;
 
         std::chrono::steady_clock::time_point m_startTime;
         std::chrono::steady_clock::time_point m_lastTime;

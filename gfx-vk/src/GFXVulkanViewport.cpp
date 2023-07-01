@@ -5,6 +5,7 @@
 #include "BufferHelper.h"
 #include <array>
 
+
 #ifdef max
 #undef max
 #endif
@@ -58,12 +59,12 @@ namespace gfx
     }
     VkPresentModeKHR _ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
     {
-        for (const auto& availablePresentMode : availablePresentModes)
-        {
-            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-                return availablePresentMode;
-            }
-        }
+        //for (const auto& availablePresentMode : availablePresentModes)
+        //{
+        //    if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+        //        return availablePresentMode;
+        //    }
+        //}
 
         return VK_PRESENT_MODE_FIFO_KHR;
     }
@@ -95,8 +96,10 @@ namespace gfx
         this->InitSwapChain();
         this->InitRenderPass();
         this->InitCommandBuffers();
-        this->InitDepthTestBuffer();
+        //this->InitDepthTestBuffer();
         this->InitFrameBuffers();
+
+        m_currentFrame = MAX_FRAMES_IN_FLIGHT - 1;
 
         m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -119,56 +122,51 @@ namespace gfx
             }
         }
 
+        this->InitQueue();
     }
     GFXVulkanViewport::~GFXVulkanViewport()
     {
-        vkDestroyRenderPass(m_app->GetVkDevice(), m_renderPass, nullptr);
+        
     }
     void GFXVulkanViewport::InitRenderPass()
     {
 
     }
 
+    void GFXVulkanViewport::InitQueue()
+    {
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        {
+            m_queues.push_back(new GFXVulkanQueue(m_app, m_imageAvailableSemaphores[i], m_renderFinishedSemaphores[i], m_inFlightFences[i]));
+        }
+    }
+
     void GFXVulkanViewport::InitCommandBuffers()
     {
-        std::vector<VkCommandBuffer> buffers;
-        buffers.resize(MAX_FRAMES_IN_FLIGHT);
-
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = m_app->GetVkCommandPool();
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = buffers.size();
-
-        if (vkAllocateCommandBuffers(m_app->GetVkDevice(), &allocInfo, buffers.data()) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to allocate command buffers!");
-        }
-
-        for (size_t i = 0; i < buffers.size(); i++)
-        {
-            m_commandBuffers.push_back(std::unique_ptr<GFXVulkanCommandBuffer>(new GFXVulkanCommandBuffer(m_app)));
-        }
+        //for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        //{
+        //    m_commandBuffers.push_back(std::unique_ptr<GFXVulkanCommandBuffer>(new GFXVulkanCommandBuffer(m_app)));
+        //}
     }
     void GFXVulkanViewport::InitDepthTestBuffer()
     {
-        this->TermDepthTestBuffer();
-        VkFormat depthFormat = BufferHelper::FindDepthFormat(m_app);
-        auto extent = m_swapChainExtent;
+        //this->TermDepthTestBuffer();
+        //VkFormat depthFormat = BufferHelper::FindDepthFormat(m_app);
+        //auto extent = m_swapChainExtent;
 
-        VkImage depthImage;
-        VkDeviceMemory depthMemory;
+        //VkImage depthImage;
+        //VkDeviceMemory depthMemory;
 
-        BufferHelper::CreateImage(
-            m_app, extent.width, extent.height, depthFormat,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            depthImage, depthMemory);
-        auto depthImageView = BufferHelper::CreateImageView(m_app, depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-        BufferHelper::TransitionImageLayout(m_app, depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+        //BufferHelper::CreateImage(
+        //    m_app, extent.width, extent.height, depthFormat,
+        //    VK_IMAGE_TILING_OPTIMAL,
+        //    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        //    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        //    depthImage, depthMemory);
+        //auto depthImageView = BufferHelper::CreateImageView(m_app, depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+        //BufferHelper::TransitionImageLayout(m_app, depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
-        m_depthTex = new GFXVulkanTexture2D(m_app, extent.width, extent.height, 1, depthFormat, depthImage, depthMemory, depthImageView, false, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, GFXSamplerConfig{});
+        //m_depthTex = new GFXVulkanTexture2D(m_app, extent.width, extent.height, 1, depthFormat, depthImage, depthMemory, depthImageView, false, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, GFXSamplerConfig{});
     }
 
     void GFXVulkanViewport::TermDepthTestBuffer()
@@ -182,40 +180,12 @@ namespace gfx
 
     void GFXVulkanViewport::InitFrameBuffers()
     {
-        this->TermFrameBuffers();
-        m_swapChainFramebuffers.resize(m_swapChainImageViews.size());
 
-        for (size_t i = 0; i < m_swapChainImageViews.size(); i++) {
-
-            std::array<VkImageView, 2> attachments =
-            {
-                m_swapChainImageViews[i],
-                m_depthTex->GetVkImageView()
-            };
-
-            VkFramebufferCreateInfo framebufferInfo{};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = m_renderPass;
-            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-            framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = m_swapChainExtent.width;
-            framebufferInfo.height = m_swapChainExtent.height;
-            framebufferInfo.layers = 1;
-
-            if (vkCreateFramebuffer(m_app->GetVkDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to create framebuffer!");
-            }
-        }
     }
 
     void GFXVulkanViewport::TermFrameBuffers()
     {
-        for (size_t i = 0; i < m_swapChainFramebuffers.size(); i++)
-        {
-            vkDestroyFramebuffer(m_app->GetVkDevice(), m_swapChainFramebuffers[i], nullptr);
-        }
-        m_swapChainFramebuffers.clear();
+
     }
 
 
@@ -242,7 +212,7 @@ namespace gfx
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
         createInfo.imageExtent = extent;
         createInfo.imageArrayLayers = 1;
-        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 
         vk::QueueFamilyIndices indices = vk::PhysicalDeviceHelper::FindQueueFamilies(m_app->GetVkSurface(), m_app->GetVkPhysicalDevice());
@@ -257,6 +227,7 @@ namespace gfx
         else
         {
             createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            //createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         }
         createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -278,8 +249,31 @@ namespace gfx
         m_swapChainImageFormat = surfaceFormat.format;
         m_swapChainExtent = extent;
 
+        GFXVulkanTexture2D* depthTexture = nullptr;
+        //create depth image
+        {
+            this->TermDepthTestBuffer();
+            VkFormat depthFormat = BufferHelper::FindDepthFormat(m_app);
+            auto extent = m_swapChainExtent;
+
+            VkImage depthImage;
+            VkDeviceMemory depthMemory;
+
+            BufferHelper::CreateImage(
+                m_app, extent.width, extent.height, depthFormat,
+                VK_IMAGE_TILING_OPTIMAL,
+                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                depthImage, depthMemory);
+            auto depthImageView = BufferHelper::CreateImageView(m_app, depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+            BufferHelper::TransitionImageLayout(m_app, depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+            depthTexture = new GFXVulkanTexture2D(m_app, extent.width, extent.height, 1, depthFormat, depthImage, depthMemory, depthImageView, false, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, GFXSamplerConfig{});
+        }
+
         //create swapchain image view
         m_swapChainImageViews.resize(m_swapChainImages.size());
+
 
         for (size_t i = 0; i < m_swapChainImages.size(); i++)
         {
@@ -304,7 +298,7 @@ namespace gfx
             }
 
             auto tex2d = new GFXVulkanTexture2D(m_app, extent.width, extent.height, 4, m_swapChainImageFormat, m_swapChainImages[i], m_swapChainImageViews[i], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-            m_renderTargets.push_back(new GFXVulkanRenderTarget(m_app, tex2d, m_swapChainImageFormat));
+            m_renderTargets.push_back(new GFXVulkanRenderTarget(m_app, tex2d, m_swapChainImageFormat, depthTexture, BufferHelper::FindDepthFormat(m_app)));
         }
 
 
@@ -338,13 +332,16 @@ namespace gfx
         InitDepthTestBuffer();
         InitFrameBuffers();
     }
-    VkResult GFXVulkanViewport::AcquireNextImage(VkSemaphore semaphore, uint32_t* outIndex)
+    VkResult GFXVulkanViewport::AcquireNextImage(uint32_t* outIndex)
     {
-        return vkAcquireNextImageKHR(m_app->GetVkDevice(), GetVkSwapChain(), UINT64_MAX, semaphore, VK_NULL_HANDLE, outIndex);
+        m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        auto result = vkAcquireNextImageKHR(m_app->GetVkDevice(), GetVkSwapChain(), UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &m_imageIndex);
+        *outIndex = m_imageIndex;
+        return result;
     }
 
     GFXRenderTarget* gfx::GFXVulkanViewport::GetRenderTarget()
     {
-        return m_renderTargets[m_currentFrame];
+        return m_renderTargets[m_imageIndex];
     }
 }

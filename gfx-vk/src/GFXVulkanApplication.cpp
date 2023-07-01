@@ -15,6 +15,7 @@
 #include "GFXVulkanRenderer.h"
 #include "GFXVulkanRenderPass.h"
 #include "GFXVulkanViewport.h"
+#include "GFXVulkanCommandBufferPool.h"
 #include <set>
 #include <cmath>
 #include <array>
@@ -332,17 +333,19 @@ namespace gfx
 
     void GFXVulkanApplication::InitCommandPool()
     {
-        vk::QueueFamilyIndices queueFamilyIndices = vk::PhysicalDeviceHelper::FindQueueFamilies(m_surface, m_physicalDevice);
+        m_cmdPool = new GFXVulkanCommandBufferPool(this);
 
-        VkCommandPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+        //vk::QueueFamilyIndices queueFamilyIndices = vk::PhysicalDeviceHelper::FindQueueFamilies(m_surface, m_physicalDevice);
 
-        if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create command pool!");
-        }
+        //VkCommandPoolCreateInfo poolInfo{};
+        //poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        //poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        //poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+        //if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS)
+        //{
+        //    throw std::runtime_error("failed to create command pool!");
+        //}
     }
 
 
@@ -435,6 +438,7 @@ namespace gfx
                 OnLoop(deltaTime);
             }
             m_lastTime = currentTime;
+            ++m_framecount;
         }
         vkDeviceWaitIdle(m_device);
     }
@@ -457,8 +461,8 @@ namespace gfx
         //m_commandBuffers.clear();
         delete m_viewport;
         delete m_descriptorManager;
-        vkDestroyCommandPool(m_device, m_commandPool, nullptr);
-
+        
+        delete m_cmdPool;
 
         vkDestroyDevice(m_device, nullptr);
 

@@ -4,6 +4,7 @@
 #include <gfx/GFXCommandBuffer.h>
 #include <gfx/GFXRenderTarget.h>
 #include "GFXVulkanRenderTarget.h"
+#include "GFXVulkanRenderContext.h"
 
 namespace gfx
 {
@@ -21,13 +22,10 @@ namespace gfx
         void RecordCommandBuffer(GFXCommandBuffer* commandBuffer, const std::vector<GFXRenderTarget*>& renderTarget);
     protected:
         GFXVulkanApplication* m_app;
-        GFXVulkanRenderTarget* m_renderTarget;
 
-        std::vector<VkSemaphore> m_imageAvailableSemaphores;
-        std::vector<VkSemaphore> m_renderFinishedSemaphores;
-        std::vector<VkFence> m_inFlightFences;
         bool m_framebufferResized = false;
         uint32_t m_currentFrame = 0;
         const int MAX_FRAMES_IN_FLIGHT = 2;
+
     };
 }

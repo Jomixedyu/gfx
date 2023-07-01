@@ -12,6 +12,7 @@
 #include "GFXShaderPass.h"
 #include "GFXRenderTarget.h"
 #include "GFXViewport.h"
+#include "GFXRenderPipeline.h"
 #include <functional>
 #include <memory>
 #include <vector>
