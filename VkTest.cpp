@@ -125,12 +125,12 @@ public:
         gfxapp = new gfx::GFXVulkanApplication(config);
         gfxapp->Initialize();
 
-        descriptorSetLayout = std::shared_ptr<gfx::GFXVulkanDescriptorSetLayout>(new gfx::GFXVulkanDescriptorSetLayout(
-            gfxapp,
-            {
-                {uint32_t(0), gfx::GFXDescriptorType::ConstantBuffer, gfx::GFXShaderStage::Vertex},
-                {uint32_t(1), gfx::GFXDescriptorType::CombinedImageSampler, gfx::GFXShaderStage::Fragment}
-            }));
+        //descriptorSetLayout = std::shared_ptr<gfx::GFXVulkanDescriptorSetLayout>(new gfx::GFXVulkanDescriptorSetLayout(
+        //    gfxapp,
+        //    {
+        //        {uint32_t(0), gfx::GFXDescriptorType::ConstantBuffer, gfx::GFXShaderStage::Vertex},
+        //        {uint32_t(1), gfx::GFXDescriptorType::CombinedImageSampler, gfx::GFXShaderStage::Fragment}
+        //    }));
 
         //{
         //    auto vertShaderCode = IOHelper::ReadFile("shader/Lit.vs.spv");
@@ -192,7 +192,10 @@ public:
         gfxapp->SetRenderPipeline(new HDRenderPipeline);
         gfxapp->ExecLoop();
 
-        cleanup();
+        delete gfxapp->GetRenderPipeline();
+        gfxapp->SetRenderPipeline(nullptr);
+
+        //cleanup();
         gfxapp->Terminate();
     }
 
@@ -232,10 +235,6 @@ private:
 
         vertexBuffer->Release();
         indexBuffer->Release();
-        /*for (auto& uniformBuffer : uniformBuffers)
-        {
-            uniformBuffer->Release();
-        }*/
         delete uniformBuffers;
 
         textureImage.reset();
@@ -245,15 +244,6 @@ private:
 
         pipeline.reset();
 
-        //vkDestroyRenderPass(gfxapp->GetVkDevice(), gfxapp->GetVkRenderPass(), nullptr);
-
-        /*vkDestroyCommandPool(gfxapp->GetVkDevice(), gfxapp->GetVkCommandPool(), nullptr);*/
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-        {
-            vkDestroySemaphore(gfxapp->GetVkDevice(), renderFinishedSemaphores[i], nullptr);
-            vkDestroySemaphore(gfxapp->GetVkDevice(), imageAvailableSemaphores[i], nullptr);
-            vkDestroyFence(gfxapp->GetVkDevice(), inFlightFences[i], nullptr);
-        }
 
     }
 

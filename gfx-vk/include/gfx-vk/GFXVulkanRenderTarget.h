@@ -12,6 +12,9 @@ namespace gfx
 	{
 		using base = GFXRenderTarget;
 	public:
+		/**
+		* render target view
+		*/
 		GFXVulkanRenderTarget(GFXVulkanApplication* app, GFXVulkanTexture2D* tex, VkFormat colorFormat, GFXVulkanTexture2D* depth, VkFormat depthFormat);
 		virtual ~GFXVulkanRenderTarget() override;
 	public:
@@ -32,6 +35,7 @@ namespace gfx
 		
 	protected:
 		void InitRenderPass();
+		void TermRenderPass();
 	protected:
 		VkRenderPass m_renderPass = VK_NULL_HANDLE;
 		VkFramebuffer m_frameBuffer = VK_NULL_HANDLE;

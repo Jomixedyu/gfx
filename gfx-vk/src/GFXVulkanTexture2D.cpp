@@ -98,6 +98,7 @@ namespace gfx
         }
         return {};
     }
+
     GFXVulkanTexture2D::GFXVulkanTexture2D(
         GFXVulkanApplication* app,
         int32_t width, int32_t height, int32_t channel,
@@ -106,7 +107,7 @@ namespace gfx
         : 
         base(width, height, channel, samplerCfg, enableReadWrite),
         m_app(app), m_textureImage(image), m_textureImageMemory(memory), m_textureImageView(imageView),
-        m_imageLayout(layout), m_imageFormat(format)
+        m_imageLayout(layout), m_imageFormat(format), m_isManaged(true)
     {
         auto filter = _GetVkFilter(samplerCfg.Filter);
         auto addressMode = _GetVkAddressMode(samplerCfg.AddressMode);

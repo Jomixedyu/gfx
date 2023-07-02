@@ -1,4 +1,5 @@
 #include "GFXVulkanRenderTarget.h"
+#include "GFXVulkanRenderTarget.h"
 #include "GFXVulkanApplication.h"
 #include "PhysicalDeviceHelper.h"
 #include "BufferHelper.h"
@@ -95,7 +96,7 @@ namespace gfx
             throw std::runtime_error("failed to create render pass!");
         }
 
-
+        //create framebuffer
         std::array<VkImageView, 2> fbAttachments =
         {
             m_tex2d->GetVkImageView(),
@@ -118,9 +119,17 @@ namespace gfx
 
     }
 
-    GFXVulkanRenderTarget::~GFXVulkanRenderTarget()
+    void GFXVulkanRenderTarget::TermRenderPass()
     {
         vkDestroyRenderPass(m_app->GetVkDevice(), m_renderPass, nullptr);
         m_renderPass = VK_NULL_HANDLE;
+
+        vkDestroyFramebuffer(m_app->GetVkDevice(), m_frameBuffer, nullptr);
+        m_frameBuffer = VK_NULL_HANDLE;
+    }
+
+    GFXVulkanRenderTarget::~GFXVulkanRenderTarget()
+    {
+        TermRenderPass();
     }
 }

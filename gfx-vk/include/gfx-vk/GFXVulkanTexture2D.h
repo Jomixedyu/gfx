@@ -57,6 +57,7 @@ namespace gfx
         VkFormat m_imageFormat;
 
         bool m_isView = false;
+        bool m_isManaged = false;
         bool m_inited = false;
     };
 }

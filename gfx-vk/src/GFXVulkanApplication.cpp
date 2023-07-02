@@ -331,23 +331,6 @@ namespace gfx
         vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
     }
 
-    void GFXVulkanApplication::InitCommandPool()
-    {
-        m_cmdPool = new GFXVulkanCommandBufferPool(this);
-
-        //vk::QueueFamilyIndices queueFamilyIndices = vk::PhysicalDeviceHelper::FindQueueFamilies(m_surface, m_physicalDevice);
-
-        //VkCommandPoolCreateInfo poolInfo{};
-        //poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        //poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        //poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-
-        //if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS)
-        //{
-        //    throw std::runtime_error("failed to create command pool!");
-        //}
-    }
-
 
     static bool _HasStencilComponent(VkFormat format)
     {
@@ -359,10 +342,6 @@ namespace gfx
 
 
 
-    void GFXVulkanApplication::InitDescriptorPool()
-    {
-        m_descriptorManager = new GFXVulkanDescriptorManager(this);
-    }
 
     void GFXVulkanApplication::Initialize()
     {
@@ -396,12 +375,14 @@ namespace gfx
 
         this->InitPickPhysicalDevice();
         this->InitLogicalDevice();
-        this->InitCommandPool();
+
+        // command pool
+        m_cmdPool = new GFXVulkanCommandBufferPool(this);
+        // descriptor
+        m_descriptorManager = new GFXVulkanDescriptorManager(this);
         // viewport
         m_viewport = new GFXVulkanViewport(this, m_window);
-        //
-        this->InitDescriptorPool();
-
+        //// renderer
         m_renderer = new GFXVulkanRenderer(this);
     }
 
@@ -454,14 +435,10 @@ namespace gfx
 
     void GFXVulkanApplication::Terminate()
     {
-
-        //this->TermDepthTestBuffer();
-        //this->TermFrameBuffers();
-
-        //m_commandBuffers.clear();
+        delete m_renderer;
         delete m_viewport;
         delete m_descriptorManager;
-        
+        //
         delete m_cmdPool;
 
         vkDestroyDevice(m_device, nullptr);

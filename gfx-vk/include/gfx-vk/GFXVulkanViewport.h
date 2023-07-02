@@ -29,13 +29,7 @@ namespace gfx
 
         void InitSwapChain();
         void TermSwapChain();
-        void InitFrameBuffers();
-        void TermFrameBuffers();
-        void InitDepthTestBuffer();
-        void TermDepthTestBuffer();
-        void InitCommandBuffers();
-        void InitRenderPass();
-        void InitQueue();
+
         void ReInitSwapChain();
     public:
         VkSwapchainKHR GetVkSwapChain() const { return m_swapChain; }
@@ -44,7 +38,7 @@ namespace gfx
         VkExtent2D GetVkSwapChainExtent() const { return m_swapChainExtent; }
         VkFormat GetVkSwapChainImageFormat() const { return m_swapChainImageFormat; }
         GFXVulkanApplication* GetApplication() const { return m_app; }
-        GFXVulkanQueue* GetQueue() const { return m_queues[m_currentFrame]; }
+        GFXVulkanQueue* GetQueue() const { return m_queues[m_currentFrame].get(); }
         VkResult AcquireNextImage(uint32_t* outIndex);
     public:
         virtual GFXRenderTarget* GetRenderTarget() override;
@@ -60,10 +54,11 @@ namespace gfx
         std::vector<VkImage> m_swapChainImages;
         std::vector<VkImageView> m_swapChainImageViews;
 
-        std::vector<GFXVulkanRenderTarget*> m_renderTargets;
-        std::vector<GFXVulkanQueue*> m_queues;
+        std::vector< std::unique_ptr<GFXVulkanRenderTarget> > m_renderTargets;
+        std::vector< std::unique_ptr<GFXVulkanQueue> > m_queues;
 
-        GFXVulkanTexture2D* m_depthTex = nullptr;
+        std::vector<std::unique_ptr<GFXVulkanTexture2D>> m_swapTex;
+        std::unique_ptr<GFXVulkanTexture2D> m_depthTex = nullptr;
 
         VkFormat m_swapChainImageFormat;
         VkExtent2D m_swapChainExtent;

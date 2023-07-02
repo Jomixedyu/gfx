@@ -82,8 +82,7 @@ namespace gfx
 
         void InitPickPhysicalDevice();
         void InitLogicalDevice();
-        void InitCommandPool();
-        void InitDescriptorPool();
+
     public:
 
     protected:
@@ -122,5 +121,12 @@ namespace gfx
 
         std::chrono::steady_clock::time_point m_startTime;
         std::chrono::steady_clock::time_point m_lastTime;
+    };
+
+    class IGFXVulkanDevice
+    {
+        GFXVulkanApplication* m_vkapp;
+
+        virtual void OnDeviceDestroy() = 0;
     };
 }

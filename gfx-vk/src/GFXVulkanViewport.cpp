@@ -12,92 +12,94 @@
 
 namespace gfx
 {
-    struct SwapChainSupportDetails
+    namespace
     {
-        VkSurfaceCapabilitiesKHR capabilities;
-        std::vector<VkSurfaceFormatKHR> formats;
-        std::vector<VkPresentModeKHR> presentModes;
-    };
-
-    static SwapChainSupportDetails _QuerySwapChainSupport(GFXVulkanApplication* app)
-    {
-        SwapChainSupportDetails details;
-
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &details.capabilities);
-
-        uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &formatCount, nullptr);
-
-        if (formatCount != 0)
+        struct SwapChainSupportDetails
         {
-            details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &formatCount, details.formats.data());
-        }
+            VkSurfaceCapabilitiesKHR capabilities{};
+            std::vector<VkSurfaceFormatKHR> formats;
+            std::vector<VkPresentModeKHR> presentModes;
+        };
 
-        uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &presentModeCount, nullptr);
 
-        if (presentModeCount != 0)
+        static SwapChainSupportDetails _QuerySwapChainSupport(GFXVulkanApplication* app)
         {
-            details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &presentModeCount, details.presentModes.data());
-        }
+            SwapChainSupportDetails details;
 
-        return details;
-    }
-    static VkSurfaceFormatKHR _ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
-    {
-        for (const auto& availableFormat : availableFormats)
-        {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            vkGetPhysicalDeviceSurfaceCapabilitiesKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &details.capabilities);
+
+            uint32_t formatCount;
+            vkGetPhysicalDeviceSurfaceFormatsKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &formatCount, nullptr);
+
+            if (formatCount != 0)
             {
-                return availableFormat;
+                details.formats.resize(formatCount);
+                vkGetPhysicalDeviceSurfaceFormatsKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &formatCount, details.formats.data());
             }
+
+            uint32_t presentModeCount;
+            vkGetPhysicalDeviceSurfacePresentModesKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &presentModeCount, nullptr);
+
+            if (presentModeCount != 0)
+            {
+                details.presentModes.resize(presentModeCount);
+                vkGetPhysicalDeviceSurfacePresentModesKHR(app->GetVkPhysicalDevice(), app->GetVkSurface(), &presentModeCount, details.presentModes.data());
+            }
+
+            return details;
         }
-
-        return availableFormats[0];
-    }
-    VkPresentModeKHR _ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
-    {
-        //for (const auto& availablePresentMode : availablePresentModes)
-        //{
-        //    if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-        //        return availablePresentMode;
-        //    }
-        //}
-
-        return VK_PRESENT_MODE_FIFO_KHR;
-    }
-    static VkExtent2D _ChooseSwapExtent(GFXVulkanApplication* app, const VkSurfaceCapabilitiesKHR& capabilities)
-    {
-        if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+        static VkSurfaceFormatKHR _ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
         {
-            return capabilities.currentExtent;
+            for (const auto& availableFormat : availableFormats)
+            {
+                if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+                {
+                    return availableFormat;
+                }
+            }
+
+            return availableFormats[0];
         }
-        else
+        static VkPresentModeKHR _ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
         {
-            int width, height;
-            glfwGetFramebufferSize(reinterpret_cast<GLFWwindow*>(app->GetWindowHandle()), &width, &height);
+            for (const auto& availablePresentMode : availablePresentModes)
+            {
+                if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+                {
+                    return availablePresentMode;
+                }
+            }
 
-            VkExtent2D actualExtent = {
-                static_cast<uint32_t>(width),
-                static_cast<uint32_t>(height)
-            };
+            return VK_PRESENT_MODE_FIFO_KHR;
+        }
+        static VkExtent2D _ChooseSwapExtent(GFXVulkanApplication* app, const VkSurfaceCapabilitiesKHR& capabilities)
+        {
+            if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+            {
+                return capabilities.currentExtent;
+            }
+            else
+            {
+                int width, height;
+                glfwGetFramebufferSize(reinterpret_cast<GLFWwindow*>(app->GetWindowHandle()), &width, &height);
 
-            actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-            actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+                VkExtent2D actualExtent = {
+                    static_cast<uint32_t>(width),
+                    static_cast<uint32_t>(height)
+                };
 
-            return actualExtent;
+                actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+                actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+                return actualExtent;
+            }
         }
     }
     GFXVulkanViewport::GFXVulkanViewport(GFXVulkanApplication* app, GLFWwindow* window)
         : m_app(app), m_window(window)
     {
         this->InitSwapChain();
-        this->InitRenderPass();
-        this->InitCommandBuffers();
         //this->InitDepthTestBuffer();
-        this->InitFrameBuffers();
 
         m_currentFrame = MAX_FRAMES_IN_FLIGHT - 1;
 
@@ -122,69 +124,26 @@ namespace gfx
             }
         }
 
-        this->InitQueue();
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        {
+            m_queues.push_back(std::unique_ptr<GFXVulkanQueue>{new GFXVulkanQueue(m_app, m_imageAvailableSemaphores[i], m_renderFinishedSemaphores[i], m_inFlightFences[i])});
+        }
     }
     GFXVulkanViewport::~GFXVulkanViewport()
     {
-        
-    }
-    void GFXVulkanViewport::InitRenderPass()
-    {
+        TermSwapChain();
 
-    }
+        m_queues.clear();
 
-    void GFXVulkanViewport::InitQueue()
-    {
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
-            m_queues.push_back(new GFXVulkanQueue(m_app, m_imageAvailableSemaphores[i], m_renderFinishedSemaphores[i], m_inFlightFences[i]));
+            vkDestroySemaphore(m_app->GetVkDevice(), m_imageAvailableSemaphores[i], nullptr);
+            vkDestroySemaphore(m_app->GetVkDevice(), m_renderFinishedSemaphores[i], nullptr);
+            vkDestroyFence(m_app->GetVkDevice(), m_inFlightFences[i], nullptr);
         }
-    }
-
-    void GFXVulkanViewport::InitCommandBuffers()
-    {
-        //for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-        //{
-        //    m_commandBuffers.push_back(std::unique_ptr<GFXVulkanCommandBuffer>(new GFXVulkanCommandBuffer(m_app)));
-        //}
-    }
-    void GFXVulkanViewport::InitDepthTestBuffer()
-    {
-        //this->TermDepthTestBuffer();
-        //VkFormat depthFormat = BufferHelper::FindDepthFormat(m_app);
-        //auto extent = m_swapChainExtent;
-
-        //VkImage depthImage;
-        //VkDeviceMemory depthMemory;
-
-        //BufferHelper::CreateImage(
-        //    m_app, extent.width, extent.height, depthFormat,
-        //    VK_IMAGE_TILING_OPTIMAL,
-        //    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        //    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        //    depthImage, depthMemory);
-        //auto depthImageView = BufferHelper::CreateImageView(m_app, depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-        //BufferHelper::TransitionImageLayout(m_app, depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-
-        //m_depthTex = new GFXVulkanTexture2D(m_app, extent.width, extent.height, 1, depthFormat, depthImage, depthMemory, depthImageView, false, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, GFXSamplerConfig{});
-    }
-
-    void GFXVulkanViewport::TermDepthTestBuffer()
-    {
-        if (m_depthTex != nullptr)
-        {
-            delete m_depthTex;
-            m_depthTex = nullptr;
-        }
-    }
-
-    void GFXVulkanViewport::InitFrameBuffers()
-    {
-
-    }
-
-    void GFXVulkanViewport::TermFrameBuffers()
-    {
+        m_imageAvailableSemaphores.clear();
+        m_renderFinishedSemaphores.clear();
+        m_inFlightFences.clear();
 
     }
 
@@ -252,7 +211,6 @@ namespace gfx
         GFXVulkanTexture2D* depthTexture = nullptr;
         //create depth image
         {
-            this->TermDepthTestBuffer();
             VkFormat depthFormat = BufferHelper::FindDepthFormat(m_app);
             auto extent = m_swapChainExtent;
 
@@ -269,6 +227,7 @@ namespace gfx
             BufferHelper::TransitionImageLayout(m_app, depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
             depthTexture = new GFXVulkanTexture2D(m_app, extent.width, extent.height, 1, depthFormat, depthImage, depthMemory, depthImageView, false, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, GFXSamplerConfig{});
+            m_depthTex = std::unique_ptr<GFXVulkanTexture2D>{ depthTexture };
         }
 
         //create swapchain image view
@@ -297,8 +256,9 @@ namespace gfx
                 throw std::runtime_error("failed to create image views!");
             }
 
-            auto tex2d = new GFXVulkanTexture2D(m_app, extent.width, extent.height, 4, m_swapChainImageFormat, m_swapChainImages[i], m_swapChainImageViews[i], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-            m_renderTargets.push_back(new GFXVulkanRenderTarget(m_app, tex2d, m_swapChainImageFormat, depthTexture, BufferHelper::FindDepthFormat(m_app)));
+            auto tex2d = std::unique_ptr<GFXVulkanTexture2D>{ new GFXVulkanTexture2D(m_app, extent.width, extent.height, 4, m_swapChainImageFormat, m_swapChainImages[i], m_swapChainImageViews[i], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) };
+            m_renderTargets.push_back(std::unique_ptr<GFXVulkanRenderTarget>{new GFXVulkanRenderTarget(m_app, tex2d.get(), m_swapChainImageFormat, depthTexture, BufferHelper::FindDepthFormat(m_app))});
+            m_swapTex.push_back(std::move(tex2d));
         }
 
 
@@ -306,12 +266,18 @@ namespace gfx
 
     void GFXVulkanViewport::TermSwapChain()
     {
+        m_renderTargets.clear();
+        m_swapTex.clear();
+
+        m_depthTex.reset();
+
         for (size_t i = 0; i < m_swapChainImageViews.size(); i++)
         {
             vkDestroyImageView(m_app->GetVkDevice(), m_swapChainImageViews[i], nullptr);
         }
 
         vkDestroySwapchainKHR(m_app->GetVkDevice(), m_swapChain, nullptr);
+
     }
 
     void GFXVulkanViewport::ReInitSwapChain()
@@ -329,8 +295,6 @@ namespace gfx
         TermSwapChain();
 
         InitSwapChain();
-        InitDepthTestBuffer();
-        InitFrameBuffers();
     }
     VkResult GFXVulkanViewport::AcquireNextImage(uint32_t* outIndex)
     {
@@ -342,6 +306,6 @@ namespace gfx
 
     GFXRenderTarget* gfx::GFXVulkanViewport::GetRenderTarget()
     {
-        return m_renderTargets[m_imageIndex];
+        return m_renderTargets[m_imageIndex].get();
     }
 }
