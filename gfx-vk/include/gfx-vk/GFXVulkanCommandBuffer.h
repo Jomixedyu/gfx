@@ -53,6 +53,9 @@ namespace gfx
         {
             m_rt = renderTarget;
         }
+
+
+
         void CmdClearColor(float r, float g, float b, float a)
         {
             VkClearColorValue color{ r,g,b,a };
@@ -85,7 +88,6 @@ namespace gfx
             auto image = m_rt->GetVkColorImage();
 
             vkCmdClearColorImage(m_cmdBuffer, image, clearLayout, &color, 1, &srRange);
-
             {
                 VkImageMemoryBarrier barrier{};
                 barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -105,9 +107,65 @@ namespace gfx
                     0, 0, nullptr, 0, nullptr, 1, &barrier);
             }
 
+
+
+            {
+                VkImageMemoryBarrier barrier{};
+                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                barrier.newLayout = clearLayout;
+                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.image = m_rt->GetVkDepthImage();
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+                barrier.subresourceRange.baseMipLevel = 0;
+                barrier.subresourceRange.levelCount = 1;
+                barrier.subresourceRange.baseArrayLayer = 0;
+                barrier.subresourceRange.layerCount = 1;
+
+                vkCmdPipelineBarrier(
+                    m_cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    0, 0, nullptr, 0, nullptr, 1, &barrier);
+            }
+
+            VkClearDepthStencilValue depthClearValue{};
+            depthClearValue.depth = 1;
+            depthClearValue.stencil = 0;
+
+            VkImageSubresourceRange srRange2{};
+            srRange2.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            srRange2.baseMipLevel = 0;
+            srRange2.levelCount = 1;
+            srRange2.baseArrayLayer = 0;
+            srRange2.layerCount = 1;
+
+            vkCmdClearDepthStencilImage(
+                m_cmdBuffer, m_rt->GetVkDepthImage(),
+                clearLayout, &depthClearValue, 1, &srRange2);
+
+            {
+                VkImageMemoryBarrier barrier{};
+                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                barrier.oldLayout = clearLayout;
+                barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.image = m_rt->GetVkDepthImage();
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+                barrier.subresourceRange.baseMipLevel = 0;
+                barrier.subresourceRange.levelCount = 1;
+                barrier.subresourceRange.baseArrayLayer = 0;
+                barrier.subresourceRange.layerCount = 1;
+
+                vkCmdPipelineBarrier(
+                    m_cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    0, 0, nullptr, 0, nullptr, 1, &barrier);
+            }
         }
         void CmdBeginRenderTarget()
         {
+            bool isClear = false;
+
             VkRenderPassBeginInfo renderPassInfo{};
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             renderPassInfo.renderPass = m_rt->GetVulkanRenderPass()->GetVkRenderPass();
@@ -119,9 +177,7 @@ namespace gfx
             clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
             clearValues[1].depthStencil = { 1.0f, 0 };
 
-            renderPassInfo.clearValueCount = 1;
-
-            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+            renderPassInfo.clearValueCount = isClear ? static_cast<uint32_t>(clearValues.size()) : 0;
             renderPassInfo.pClearValues = clearValues.data();
 
             vkCmdBeginRenderPass(m_cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);

@@ -26,7 +26,7 @@ namespace gfx
 		VkImage GetVkColorImage() const { return m_tex2d ? m_tex2d->GetVkImage() : VK_NULL_HANDLE; }
 		VkImageView GetVkColorImageView() const { return m_tex2d ? m_tex2d->GetVkImageView() : VK_NULL_HANDLE; }
 		VkImageLayout GetVkColorImageLayout() const { assert(m_tex2d); return m_tex2d->GetVkImageLayout(); }
-
+		VkImageLayout GetVkDepthImageLayout() const { return m_depthTex->GetVkImageLayout(); }
 		VkImage GetVkDepthImage() const { return m_depthTex ? m_depthTex->GetVkImage() : VK_NULL_HANDLE; }
 		VkImageView GetVkDepthImageView() const { return m_depthTex ? m_depthTex->GetVkImageView() : VK_NULL_HANDLE; }
 

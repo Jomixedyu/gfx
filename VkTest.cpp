@@ -78,7 +78,7 @@ public:
         auto& buffer = static_cast<GFXVulkanCommandBuffer&>(context->AddCommandBuffer());
         buffer.Begin();
         buffer.SetRenderTarget(rt);
-        //buffer.CmdClearColor(0.1, 0.16, 0.16, 1);
+        buffer.CmdClearColor(0.1, 0.16, 0.16, 1);
         buffer.CmdBeginRenderTarget();
         buffer.CmdSetViewport(0, 0, rt->GetWidth(), rt->GetHeight());
         buffer.CmdBindShaderPass(Shaderpass);
