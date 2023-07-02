@@ -79,7 +79,7 @@ public:
         buffer.CmdClearColor((std::sin(time)+1)/2, (std::cos(time)+1)/2, 0, 1);
 
         buffer.CmdBeginRenderTarget();
-        buffer.CmdSetViewport(0, 0, 1280, 720);
+        buffer.CmdSetViewport(0, 0, rt->GetWidth(), rt->GetHeight());
         buffer.CmdEndRenderTarget();
         buffer.SetRenderTarget(nullptr);
         buffer.End();

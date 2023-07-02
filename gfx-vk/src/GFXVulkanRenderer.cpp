@@ -41,35 +41,6 @@ namespace gfx
         auto renderTargets = std::vector{ viewport->GetRenderTarget() };
         m_app->GetRenderPipeline()->OnRender(&renderContext, renderTargets);
 
-        //cmdBuffer->Begin();
-
-        //RecordCommandBuffer(cmdBuffer, { m_app->GetVulkanViewport()->GetRenderTarget() });
-
-        //cmdBuffer->End();
-
-
-
-        //VkSubmitInfo submitInfo{};
-        //submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-        //VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphores[m_currentFrame] };
-        //VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-        //submitInfo.waitSemaphoreCount = 1;
-        //submitInfo.pWaitSemaphores = waitSemaphores;
-        //submitInfo.pWaitDstStageMask = waitStages;
-
-        //submitInfo.commandBufferCount = 1;
-        //submitInfo.pCommandBuffers = &m_app->GetVkCommandBuffer(m_currentFrame);
-
-        //VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[m_currentFrame] };
-        //submitInfo.signalSemaphoreCount = 1;
-        //submitInfo.pSignalSemaphores = signalSemaphores;
-
-        //if (vkQueueSubmit(m_app->GetVkGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS)
-        //{
-        //    throw std::runtime_error("failed to submit draw command buffer!");
-        //}
-
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
@@ -93,8 +64,6 @@ namespace gfx
             throw std::runtime_error("failed to present swap chain image!");
         }
 
-        //m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-        //m_app->GetVulkanViewport()->m_currentFrame = m_currentFrame;
     }
 
     void GFXVulkanRenderer::RecordCommandBuffer(
