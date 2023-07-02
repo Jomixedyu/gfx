@@ -190,7 +190,7 @@ public:
 
         gfxapp->OnLoop = [this](float dt)
         {
-            drawFrame(dt);
+            updateUniformBuffer(dt);
         };
         auto srp = new HDRenderPipeline;
         gfxapp->SetRenderPipeline(srp);
@@ -243,14 +243,10 @@ private:
 
         descriptorSetLayout.reset();
         descriptorSets.clear();
-
-
-
     }
 
     void updateUniformBuffer(float dt)
     {
-
         static float timecount = 0;
         timecount += dt;
 
@@ -262,12 +258,6 @@ private:
 
         uniformBuffers->Fill(&ubo);
     }
-
-    void drawFrame(float dt)
-    {
-        updateUniformBuffer(dt);
-    }
-
 
 };
 
