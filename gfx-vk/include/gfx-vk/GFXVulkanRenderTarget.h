@@ -3,6 +3,7 @@
 #include "VulkanInclude.h"
 #include "GFXVulkanTexture2D.h"
 #include <cassert>
+#include "GFXVulkanRenderPass.h"
 
 namespace gfx
 {
@@ -15,7 +16,11 @@ namespace gfx
 		/**
 		* render target view
 		*/
-		GFXVulkanRenderTarget(GFXVulkanApplication* app, GFXVulkanTexture2D* tex, VkFormat colorFormat, GFXVulkanTexture2D* depth, VkFormat depthFormat);
+		GFXVulkanRenderTarget(GFXVulkanApplication* app, 
+			GFXVulkanTexture2D* tex, VkFormat colorFormat, 
+			GFXVulkanTexture2D* depth, VkFormat depthFormat, 
+			const std::shared_ptr<GFXVulkanRenderPass>& renderPass);
+
 		virtual ~GFXVulkanRenderTarget() override;
 	public:
 		VkImage GetVkColorImage() const { return m_tex2d ? m_tex2d->GetVkImage() : VK_NULL_HANDLE; }
@@ -25,7 +30,6 @@ namespace gfx
 		VkImage GetVkDepthImage() const { return m_depthTex ? m_depthTex->GetVkImage() : VK_NULL_HANDLE; }
 		VkImageView GetVkDepthImageView() const { return m_depthTex ? m_depthTex->GetVkImageView() : VK_NULL_HANDLE; }
 
-		VkRenderPass GetVkRenderPass() const { return m_renderPass; }
 		VkFramebuffer GetVkFrameBuffer() const { return m_frameBuffer; }
 
 		VkExtent2D GetVkExtent() const { return { (uint32_t)m_width, (uint32_t)m_height }; }
@@ -33,11 +37,13 @@ namespace gfx
 		virtual int32_t GetWidth() const override { return m_width; }
 		virtual int32_t GetHeight() const override { return m_height; }
 		
+		GFXVulkanRenderPass* GetVulkanRenderPass() const { return m_renderPass.get(); }
 	protected:
 		void InitRenderPass();
 		void TermRenderPass();
 	protected:
-		VkRenderPass m_renderPass = VK_NULL_HANDLE;
+		std::shared_ptr<GFXVulkanRenderPass> m_renderPass;
+
 		VkFramebuffer m_frameBuffer = VK_NULL_HANDLE;
 
 		GFXVulkanTexture2D* m_tex2d;

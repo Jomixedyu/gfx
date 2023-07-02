@@ -14,6 +14,7 @@
 #include "GFXVulkanTexture2D.h"
 #include "GFXVulkanFrameBuffer.h"
 #include "GFXVulkanQueue.h"
+#include "GFXVulkanRenderPass.h"
 
 namespace gfx
 {
@@ -42,6 +43,7 @@ namespace gfx
         VkResult AcquireNextImage(uint32_t* outIndex);
     public:
         virtual GFXRenderTarget* GetRenderTarget() override;
+        GFXVulkanRenderPass* GetRenderPass() const { return m_renderPass.get(); }
     protected:
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -59,6 +61,8 @@ namespace gfx
 
         std::vector<std::unique_ptr<GFXVulkanTexture2D>> m_swapTex;
         std::unique_ptr<GFXVulkanTexture2D> m_depthTex = nullptr;
+
+        std::shared_ptr<GFXVulkanRenderPass> m_renderPass;
 
         VkFormat m_swapChainImageFormat;
         VkExtent2D m_swapChainExtent;

@@ -492,9 +492,11 @@ namespace gfx
         const GFXShaderPassConfig& config, 
         std::shared_ptr<GFXVertexLayoutDescription> vertexLayout, 
         std::shared_ptr<GFXShaderModule> shaderModule,
-        const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout)
+        const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout,
+        GFXRenderPassLayout* renderPass)
     {
-        auto vkPipeline = new GFXVulkanGraphicsPipeline(this, config, vertexLayout, shaderModule, descSetLayout, nullptr);
+        auto vkRenderPass = static_cast<GFXVulkanRenderPass*>(renderPass);
+        auto vkPipeline = new GFXVulkanGraphicsPipeline(this, config, vertexLayout, shaderModule, descSetLayout, vkRenderPass);
         return std::shared_ptr<GFXShaderPass>(vkPipeline);
     }
 

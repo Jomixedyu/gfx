@@ -1,6 +1,7 @@
 #include "GFXVulkanCommandBuffer.h"
 #include "GFXVulkanApplication.h"
 #include "GFXVulkanCommandBufferPool.h"
+#include "GFXVulkanGraphicsPipeline.h"
 
 namespace gfx
 {
@@ -43,38 +44,13 @@ namespace gfx
     void GFXVulkanCommandBuffer::End()
     {
         vkEndCommandBuffer(m_cmdBuffer);
-
-
-        //VkSubmitInfo submitInfo{};
-        //submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        //submitInfo.commandBufferCount = 1;
-        //submitInfo.pCommandBuffers = &m_cmdBuffer;
-
-        //VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-
-        //if (m_imageSemaphore)
-        //{
-        //    submitInfo.waitSemaphoreCount = 1;
-        //    submitInfo.pWaitSemaphores = &m_imageSemaphore;
-        //    submitInfo.pWaitDstStageMask = waitStages;
-        //}
-        //if (m_renderSemaphore)
-        //{
-        //    submitInfo.signalSemaphoreCount = 1;
-        //    submitInfo.pSignalSemaphores = &m_renderSemaphore;
-        //}
-
-        //vkQueueSubmit(m_app->GetVkGraphicsQueue(), 1, &submitInfo, m_inFlightFence);
-
-        //vkQueueWaitIdle(m_app->GetVkGraphicsQueue());
-
     }
 
-    void GFXVulkanCommandBuffer::CmdBindPipeline(GFXShaderPass* pipeline) {}
-    void GFXVulkanCommandBuffer::CmdBindVertexBuffers() {}
-    void GFXVulkanCommandBuffer::CmdBindIndexBuffer() {}
-    void GFXVulkanCommandBuffer::CmdBindDescriptorSets() {}
-    void GFXVulkanCommandBuffer::CmdDrawIndexed() {}
+    void GFXVulkanCommandBuffer::CmdBindShaderPass(GFXShaderPass* pipeline)
+    {
+        auto vkpipeline = static_cast<GFXVulkanGraphicsPipeline*>(pipeline);
+        vkCmdBindPipeline(m_cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkpipeline->GetVkPipeline());
+    }
 
 
 }

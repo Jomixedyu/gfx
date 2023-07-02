@@ -2,6 +2,10 @@
 #include <gfx/GFXCommandBuffer.h>
 #include "VulkanInclude.h"
 #include "GFXVulkanRenderTarget.h"
+#include "GFXVulkanBuffer.h"
+#include "GFXVulkanDescriptorSet.h"
+#include "GFXVulkanGraphicsPipeline.h"
+#include <array>
 
 namespace gfx
 {
@@ -20,11 +24,31 @@ namespace gfx
         virtual void End() override;
 
 
-        virtual void CmdBindPipeline(GFXShaderPass* pipeline) override;
-        virtual void CmdBindVertexBuffers() override;
-        virtual void CmdBindIndexBuffer() override;
-        virtual void CmdBindDescriptorSets() override;
-        virtual void CmdDrawIndexed() override;
+        virtual void CmdBindShaderPass(GFXShaderPass* pipeline);
+        virtual void CmdBindVertexBuffers(const std::vector<GFXBuffer*>& buffers)
+        {
+            std::vector<VkBuffer> vkbuffers;
+            for (auto& item : buffers)
+            {
+                vkbuffers.push_back(static_cast<GFXVulkanBuffer*>(item)->GetVkBuffer());
+            }
+            VkDeviceSize offsets[] = { 0 };
+            vkCmdBindVertexBuffers(m_cmdBuffer, 0, buffers.size(), vkbuffers.data(), offsets);
+        }
+        void CmdBindIndexBuffer(GFXBuffer* buffer)
+        {
+            vkCmdBindIndexBuffer(m_cmdBuffer, static_cast<GFXVulkanBuffer*>(buffer)->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT16);
+        }
+        void CmdBindDescriptorSets(GFXDescriptorSet* descriptorSet, GFXShaderPass* shaderPass)
+        {
+            auto vkDescSet = static_cast<GFXVulkanDescriptorSet*>(descriptorSet);
+            auto vkShaderPass = static_cast<GFXVulkanGraphicsPipeline*>(shaderPass);
+            vkCmdBindDescriptorSets(m_cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkShaderPass->GetVkPipelineLayout(), 0, 1, &vkDescSet->GetVkDescriptorSet(), 0, nullptr);
+        }
+        void CmdDrawIndexed(size_t indicesCount)
+        {
+            vkCmdDrawIndexed(m_cmdBuffer, static_cast<uint32_t>(indicesCount), 1, 0, 0, 0);
+        }
         void SetRenderTarget(GFXVulkanRenderTarget* renderTarget)
         {
             m_rt = renderTarget;
@@ -86,18 +110,19 @@ namespace gfx
         {
             VkRenderPassBeginInfo renderPassInfo{};
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass = m_rt->GetVkRenderPass();
+            renderPassInfo.renderPass = m_rt->GetVulkanRenderPass()->GetVkRenderPass();
             renderPassInfo.framebuffer = m_rt->GetVkFrameBuffer();
             renderPassInfo.renderArea.offset = { 0, 0 };
             renderPassInfo.renderArea.extent = m_rt->GetVkExtent();
 
-            //std::array<VkClearValue, 2> clearValues{};
-            //clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-            //clearValues[1].depthStencil = { 1.0f, 0 };
+            std::array<VkClearValue, 2> clearValues{};
+            clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+            clearValues[1].depthStencil = { 1.0f, 0 };
 
-            renderPassInfo.clearValueCount = 0;
-            //renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-            //renderPassInfo.pClearValues = clearValues.data();
+            renderPassInfo.clearValueCount = 1;
+
+            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+            renderPassInfo.pClearValues = clearValues.data();
 
             vkCmdBeginRenderPass(m_cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         }
@@ -131,10 +156,6 @@ namespace gfx
 
         }
 
-        void CmdBindShaderPass(GFXShaderPass* shaderPass)
-        {
-
-        }
     public:
         virtual GFXApplication* GetApplication() const override;
         const VkCommandBuffer& GetVkCommandBuffer() const { return m_cmdBuffer; }

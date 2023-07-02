@@ -1,7 +1,6 @@
 #pragma once
 #include <gfx/GFXRenderPass.h>
 #include "VulkanInclude.h"
-#include "GFXVulkanCommandBuffer.h"
 
 namespace gfx
 {
@@ -11,7 +10,7 @@ namespace gfx
     {
 
     public:
-        GFXVulkanRenderPass(GFXVulkanApplication* app);
+        GFXVulkanRenderPass(GFXVulkanApplication* app, VkFormat colorFormat);
         virtual ~GFXVulkanRenderPass() override;
     public:
         const VkRenderPass& GetVkRenderPass() const { return m_renderPass; }

@@ -13,6 +13,7 @@
 #include "GFXRenderTarget.h"
 #include "GFXViewport.h"
 #include "GFXRenderPipeline.h"
+#include "GFXRenderPass.h"
 #include <functional>
 #include <memory>
 #include <vector>
@@ -56,7 +57,8 @@ namespace gfx
             const GFXShaderPassConfig& config,
             std::shared_ptr<GFXVertexLayoutDescription> VertexLayout,
             std::shared_ptr<GFXShaderModule> ShaderModule,
-            const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout) = 0;
+            const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout,
+            GFXRenderPassLayout* renderPass) = 0;
 
         virtual std::shared_ptr<GFXTexture2D> CreateTexture2DFromMemory(
             const uint8_t* data, int32_t length,

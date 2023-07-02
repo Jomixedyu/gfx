@@ -19,6 +19,7 @@ namespace gfx
     public:
         virtual ~GFXVulkanTexture2D() override;
 
+        //create
         GFXVulkanTexture2D(
             GFXVulkanApplication* app,
             const uint8_t* imageData,

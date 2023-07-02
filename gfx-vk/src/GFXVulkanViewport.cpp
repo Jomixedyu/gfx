@@ -144,7 +144,7 @@ namespace gfx
         m_imageAvailableSemaphores.clear();
         m_renderFinishedSemaphores.clear();
         m_inFlightFences.clear();
-
+        m_renderPass.reset();
     }
 
 
@@ -230,6 +230,8 @@ namespace gfx
             m_depthTex = std::unique_ptr<GFXVulkanTexture2D>{ depthTexture };
         }
 
+        m_renderPass = std::shared_ptr<GFXVulkanRenderPass>{ new GFXVulkanRenderPass(m_app, m_swapChainImageFormat) };
+
         //create swapchain image view
         m_swapChainImageViews.resize(m_swapChainImages.size());
 
@@ -257,7 +259,7 @@ namespace gfx
             }
 
             auto tex2d = std::unique_ptr<GFXVulkanTexture2D>{ new GFXVulkanTexture2D(m_app, extent.width, extent.height, 4, m_swapChainImageFormat, m_swapChainImages[i], m_swapChainImageViews[i], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) };
-            m_renderTargets.push_back(std::unique_ptr<GFXVulkanRenderTarget>{new GFXVulkanRenderTarget(m_app, tex2d.get(), m_swapChainImageFormat, depthTexture, BufferHelper::FindDepthFormat(m_app))});
+            m_renderTargets.push_back(std::unique_ptr<GFXVulkanRenderTarget>{new GFXVulkanRenderTarget(m_app, tex2d.get(), m_swapChainImageFormat, depthTexture, BufferHelper::FindDepthFormat(m_app), m_renderPass)});
             m_swapTex.push_back(std::move(tex2d));
         }
 
@@ -277,7 +279,7 @@ namespace gfx
         }
 
         vkDestroySwapchainKHR(m_app->GetVkDevice(), m_swapChain, nullptr);
-
+        m_renderPass.reset();
     }
 
     void GFXVulkanViewport::ReInitSwapChain()
