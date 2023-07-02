@@ -1,5 +1,4 @@
 #include "GFXVulkanApplication.h"
-#include "GFXVulkanApplication.h"
 #include <glfw/include/GLFW/glfw3.h>
 #include <stdexcept>
 #include <iostream>
@@ -339,10 +338,6 @@ namespace gfx
 
 
 
-
-
-
-
     void GFXVulkanApplication::Initialize()
     {
         glfwInit();
@@ -412,12 +407,16 @@ namespace gfx
 
             glfwPollEvents();
 
-
-            TickRender(deltaTime);
             if (OnLoop)
             {
                 OnLoop(deltaTime);
             }
+            TickRender(deltaTime);
+            if (OnPostRender)
+            {
+                OnPostRender(deltaTime);
+            }
+
             m_lastTime = currentTime;
             ++m_framecount;
         }

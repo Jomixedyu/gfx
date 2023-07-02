@@ -43,6 +43,7 @@
 #include <gfx-vk/GFXVulkanDescriptorSet.h>
 #include <gfx-vk/GFXVulkanGraphicsPipeline.h>
 #include <gfx-vk/GFXVulkanViewport.h>
+#include <gfx-vk/GFXVulkanDescriptorManager.h>
 #include <gfx/GFXRenderPipeline.h>
 #include <chrono>
 #include <gfx-vk/BufferHelper.h>
@@ -50,6 +51,9 @@
 #include "VertexData.h"
 #include "IOHelper.hpp"
 #include <gfx/GFXDescriptorSet.h>
+#include "imgui.h"
+#include "imgui_impl_vulkan.h"
+#include "imgui_impl_glfw.h"
 
 #define VULKAN_REVERT_VIEWPORT 1
 
@@ -151,9 +155,9 @@ public:
                 cfg.DepthCompareOp = gfx::GFXCompareMode::Less;
             }
 
-            pipeline = std::static_pointer_cast<gfx::GFXVulkanGraphicsPipeline> 
+            pipeline = std::static_pointer_cast<gfx::GFXVulkanGraphicsPipeline>
                 (gfxapp->CreateGraphicsPipeline(cfg, gfx::GetBindingDescription(gfxapp), shaderModule, descriptorSetLayout, gfxapp->GetVulkanViewport()->GetRenderPass()));
-            
+
         }
 
 
@@ -188,10 +192,6 @@ public:
             //descriptorSets.push_back(std::static_pointer_cast<gfx::GFXVulkanDescriptorSet>(set1));
         }
 
-        gfxapp->OnLoop = [this](float dt)
-        {
-            updateUniformBuffer(dt);
-        };
         auto srp = new HDRenderPipeline;
         gfxapp->SetRenderPipeline(srp);
 
@@ -200,7 +200,47 @@ public:
         srp->Shaderpass = pipeline.get();
         srp->DescriptorSet = descriptorSets[0].get();
 
+
+        IMGUI_CHECKVERSION();
+
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        ImGui::StyleColorsDark();
+
+        ImGui_ImplGlfw_InitForVulkan(gfxapp->GetWindow(), true);
+        ImGui_ImplVulkan_InitInfo init_info = {};
+        init_info.Instance = gfxapp->GetVkInstance();
+        init_info.PhysicalDevice = gfxapp->GetVkPhysicalDevice();
+        init_info.Device = gfxapp->GetVkDevice();
+        init_info.QueueFamily = 0;
+        init_info.Queue = gfxapp->GetVkGraphicsQueue();
+        init_info.PipelineCache = VK_NULL_HANDLE;
+        init_info.DescriptorPool = gfxapp->GetVulkanDescriptorManager()->GetCommonDescriptorSetPool()->GetVkDescriptorPool();
+        init_info.Allocator = VK_NULL_HANDLE;
+
+        ImGui_ImplVulkan_Init(&init_info, gfxapp->GetVulkanViewport()->GetRenderPass()->GetVkRenderPass());
+
+
+        gfxapp->OnLoop = [this](float dt)
+        {
+            ImGui_ImplVulkan_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
+            ImGui::Text("Hello, world %d", 123);
+
+            updateUniformBuffer(dt);
+        };
+        gfxapp->OnPostRender = [this](float dt)
+        {
+            ImGui::Render();
+        };
+
         gfxapp->ExecLoop();
+
+        ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
 
         delete gfxapp->GetRenderPipeline();
         gfxapp->SetRenderPipeline(nullptr);

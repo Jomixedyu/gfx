@@ -50,9 +50,11 @@ namespace gfx
             GFXTextureFormat format = GFXTextureFormat::R8G8B8A8_SRGB) override;
 
         virtual GFXDescriptorManager* GetDescriptorManager() override;
-
+        class GFXVulkanDescriptorManager* GetVulkanDescriptorManager() const { return m_descriptorManager; }
         virtual GFXExtensions GetExtensionNames() override;
         virtual intptr_t GetWindowHandle() override;
+
+        GLFWwindow* GetWindow() const { return m_window; }
     public:
         const VkDevice& GetVkDevice() const { return m_device; }
         const VkPhysicalDevice& GetVkPhysicalDevice() const { return m_physicalDevice; }

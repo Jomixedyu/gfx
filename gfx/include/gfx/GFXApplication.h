@@ -44,6 +44,7 @@ namespace gfx
         virtual GFXExtensions GetExtensionNames() = 0;
 
         LoopEvent OnLoop = nullptr;
+        LoopEvent OnPostRender = nullptr;
         ExitWindowEvent OnExitWindow = nullptr;
     public:
         virtual GFXBuffer* CreateBuffer(GFXBufferUsage usage, size_t bufferSize) = 0;

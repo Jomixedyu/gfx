@@ -14,9 +14,12 @@ namespace gfx
 
         virtual std::shared_ptr<GFXDescriptorSet> GetDescriptorSet(GFXDescriptorSetLayout* layout) override;
         
+        GFXVulkanDescriptorPool* GetCommonDescriptorSetPool() const { return m_externPool.get(); }
     protected:
         GFXVulkanApplication* m_app;
         std::vector<std::unique_ptr<GFXVulkanDescriptorPool>> m_pools;
+
+        std::unique_ptr<GFXVulkanDescriptorPool> m_externPool;
     };
 }
 
