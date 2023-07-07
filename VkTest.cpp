@@ -14,7 +14,6 @@
 #undef min
 
 #include <gfx/GFXDefined.h>
-#include <gfx/GFXCommandBufferScope.h>
 #include <gfx/GFXShaderModule.h>
 #include <gfx/GFXShaderPass.h>
 #include <iostream>
@@ -41,7 +40,7 @@
 #include <gfx-vk/GFXVulkanVertexLayoutDescription.h>
 #include <gfx-vk/GFXVulkanTexture2D.h>
 #include <gfx-vk/GFXVulkanDescriptorSet.h>
-#include <gfx-vk/GFXVulkanGraphicsPipeline.h>
+#include <gfx-vk/GFXVulkanShaderPass.h>
 #include <gfx-vk/GFXVulkanViewport.h>
 #include <gfx-vk/GFXVulkanDescriptorManager.h>
 #include <gfx/GFXRenderPipeline.h>
@@ -55,17 +54,7 @@
 #include "imgui_impl_vulkan.h"
 #include "imgui_impl_glfw.h"
 
-#define VULKAN_REVERT_VIEWPORT 1
-
-const int MAX_FRAMES_IN_FLIGHT = 2;
-
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
 using namespace gfx;
-
 
 class HDRenderPipeline : public GFXRenderPipeline
 {
@@ -75,23 +64,35 @@ public:
     GFXBuffer* IndexBuffer;
     GFXVulkanDescriptorSet* DescriptorSet;
 
-    virtual void OnRender(GFXRenderContext* context, const std::vector<GFXRenderTarget*>& renderTargets) override
+    virtual void OnRender(GFXRenderContext* context, const std::vector<GFXFrameBufferObject*>& renderTargets) override
     {
-        auto rt = static_cast<GFXVulkanRenderTarget*>(renderTargets[0]);
+        auto rt = static_cast<GFXVulkanFrameBufferObject*>(renderTargets[0]);
 
         auto& buffer = static_cast<GFXVulkanCommandBuffer&>(context->AddCommandBuffer());
         buffer.Begin();
-        buffer.SetRenderTarget(rt);
+        buffer.SetFrameBuffer(rt);
         buffer.CmdClearColor(0.1, 0.16, 0.16, 1);
-        buffer.CmdBeginRenderTarget();
+        buffer.CmdBeginFrameBuffer();
         buffer.CmdSetViewport(0, 0, rt->GetWidth(), rt->GetHeight());
+        //being render
         buffer.CmdBindShaderPass(Shaderpass);
         buffer.CmdBindVertexBuffers(VertBuffers);
         buffer.CmdBindIndexBuffer(IndexBuffer);
         buffer.CmdBindDescriptorSets(DescriptorSet, Shaderpass);
         buffer.CmdDrawIndexed(IndexBuffer->GetSize() / sizeof(uint16_t));
-        buffer.CmdEndRenderTarget();
-        buffer.SetRenderTarget(nullptr);
+
+        ImGui::Render();
+        ImDrawData* draw_data = ImGui::GetDrawData();
+        const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
+        if (!is_minimized)
+        {
+
+            ImGui_ImplVulkan_RenderDrawData(draw_data, buffer.GetVkCommandBuffer());
+        }
+
+        //end render
+        buffer.CmdEndFrameBuffer();
+        buffer.SetFrameBuffer(nullptr);
         buffer.End();
 
         context->Submit();
@@ -102,7 +103,7 @@ class HelloTriangleApplication {
 public:
     const std::vector<uint16_t> indices = {
     0, 1, 2, 2, 3, 0,
-    4,5,6,6,7,4
+    4, 5, 6, 6, 7, 4
     };
     const std::vector<gfx::VertexData> vertices =
     {
@@ -155,7 +156,7 @@ public:
                 cfg.DepthCompareOp = gfx::GFXCompareMode::Less;
             }
 
-            pipeline = std::static_pointer_cast<gfx::GFXVulkanGraphicsPipeline>
+            pipeline = std::static_pointer_cast<gfx::GFXVulkanShaderPass>
                 (gfxapp->CreateGraphicsPipeline(cfg, gfx::GetBindingDescription(gfxapp), shaderModule, descriptorSetLayout, gfxapp->GetVulkanViewport()->GetRenderPass()));
 
         }
@@ -180,7 +181,7 @@ public:
         {
             auto set0 = gfxapp->GetDescriptorManager()->GetDescriptorSet(descriptorSetLayout.get());
             set0->AddDescriptor(0)->SetConstantBuffer(sizeof(UniformBufferObject), uniformBuffers);
-            //set0->AddDescriptor(1)->SetTextureSampler2D(textureImage.get());
+            set0->AddDescriptor(1)->SetTextureSampler2D(textureImage.get());
 
             //auto set1 = gfxapp->GetDescriptorManager()->GetDescriptorSet(descriptorSetLayout.get());
             //set1->AddDescriptor(0)->SetConstantBuffer(sizeof(UniformBufferObject), uniformBuffers);
@@ -200,9 +201,8 @@ public:
         srp->Shaderpass = pipeline.get();
         srp->DescriptorSet = descriptorSets[0].get();
 
-
+        
         IMGUI_CHECKVERSION();
-
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO(); (void)io;
         ImGui::StyleColorsDark();
@@ -215,25 +215,54 @@ public:
         init_info.QueueFamily = 0;
         init_info.Queue = gfxapp->GetVkGraphicsQueue();
         init_info.PipelineCache = VK_NULL_HANDLE;
+        init_info.MinImageCount = 2;
+        init_info.ImageCount = 2;
         init_info.DescriptorPool = gfxapp->GetVulkanDescriptorManager()->GetCommonDescriptorSetPool()->GetVkDescriptorPool();
         init_info.Allocator = VK_NULL_HANDLE;
 
         ImGui_ImplVulkan_Init(&init_info, gfxapp->GetVulkanViewport()->GetRenderPass()->GetVkRenderPass());
+        
+        {
+            GFXVulkanCommandBuffer font(gfxapp);
+            VkCommandBufferBeginInfo beginInfo{};
+            {
+                beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+                beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            }
+            font.Begin();
+            ImGui_ImplVulkan_CreateFontsTexture(font.GetVkCommandBuffer());
+            font.End();
+            VkSubmitInfo submitInfo{};
+            {
+                submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                submitInfo.commandBufferCount = 1;
+                submitInfo.pCommandBuffers = &font.GetVkCommandBuffer();
+            }
 
-
-        gfxapp->OnLoop = [this](float dt)
+            auto err = vkQueueSubmit(gfxapp->GetVkGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+            assert(err == VkResult::VK_SUCCESS);
+            err = vkQueueWaitIdle(gfxapp->GetVkGraphicsQueue());
+            assert(err == VkResult::VK_SUCCESS);
+            ImGui_ImplVulkan_DestroyFontUploadObjects();
+        }
+        
+        gfxapp->OnPreRender = [this](float dt)
         {
             ImGui_ImplVulkan_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            ImGui::Text("Hello, world %d", 123);
+            //ImGui::Text("Hello, world %d", 123);
+            static bool show_demo_window = true;
+            if (show_demo_window)
+                ImGui::ShowDemoWindow(&show_demo_window);
 
             updateUniformBuffer(dt);
+
         };
         gfxapp->OnPostRender = [this](float dt)
         {
-            ImGui::Render();
+
         };
 
         gfxapp->ExecLoop();
@@ -251,7 +280,7 @@ public:
 
     std::shared_ptr<gfx::GFXVulkanTexture2D> textureImage;
 
-    VkCommandBuffer GetVkCommandBuffer(const gfx::GFXCommandBufferScope& scope)
+    VkCommandBuffer GetVkCommandBuffer(const GFXVulkanCommandBufferScope& scope)
     {
         return static_cast<gfx::GFXVulkanCommandBuffer*>(scope.operator->())->GetVkCommandBuffer();
     }
@@ -267,7 +296,7 @@ private:
     std::shared_ptr<gfx::GFXVulkanDescriptorSetLayout> descriptorSetLayout;
     std::vector<std::shared_ptr<gfx::GFXVulkanDescriptorSet>> descriptorSets;
 
-    std::shared_ptr<gfx::GFXVulkanGraphicsPipeline> pipeline;
+    std::shared_ptr<gfx::GFXVulkanShaderPass> pipeline;
 
     gfx::GFXVulkanBuffer* uniformBuffers;
 

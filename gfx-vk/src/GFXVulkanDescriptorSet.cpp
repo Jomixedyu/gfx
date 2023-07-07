@@ -135,6 +135,8 @@ namespace gfx
 
     GFXVulkanDescriptorSet::~GFXVulkanDescriptorSet()
     {
+        m_descriptors.clear();
+
         vkFreeDescriptorSets(this->GetApplication()->GetVkDevice(), m_pool->GetVkDescriptorPool(), 1, &m_descriptorSet);
         m_descriptorSet = VK_NULL_HANDLE;
         m_pool->ReleaseDescriptorSet();
@@ -142,8 +144,8 @@ namespace gfx
 
     GFXDescriptor* GFXVulkanDescriptorSet::AddDescriptor(uint32_t bindingPoint)
     {
-        auto descriptor = new GFXVulkanDescriptor(this, bindingPoint);
-        m_descriptors.push_back(descriptor);
+        auto descriptor = new GFXVulkanDescriptor{ this, bindingPoint };
+        m_descriptors.push_back(std::unique_ptr<GFXVulkanDescriptor>{ descriptor });
         return descriptor;
     }
 

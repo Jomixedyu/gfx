@@ -228,13 +228,12 @@ namespace gfx
 
             depthTexture = new GFXVulkanTexture2D(m_app, extent.width, extent.height, 1, depthFormat, depthImage, depthMemory, depthImageView, false, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, GFXSamplerConfig{});
             m_depthTex = std::unique_ptr<GFXVulkanTexture2D>{ depthTexture };
+            m_depthRenderTarget = std::unique_ptr<GFXVulkanRenderTarget>(new GFXVulkanRenderTarget(m_depthTex.get(), GFXRenderTargetType::Depth));
         }
 
-        m_renderPass = std::shared_ptr<GFXVulkanRenderPass>{ new GFXVulkanRenderPass(m_app, m_swapChainImageFormat) };
 
         //create swapchain image view
         m_swapChainImageViews.resize(m_swapChainImages.size());
-
 
         for (size_t i = 0; i < m_swapChainImages.size(); i++)
         {
@@ -259,18 +258,29 @@ namespace gfx
             }
 
             auto tex2d = std::unique_ptr<GFXVulkanTexture2D>{ new GFXVulkanTexture2D(m_app, extent.width, extent.height, 4, m_swapChainImageFormat, m_swapChainImages[i], m_swapChainImageViews[i], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) };
-            m_renderTargets.push_back(std::unique_ptr<GFXVulkanRenderTarget>{new GFXVulkanRenderTarget(m_app, tex2d.get(), m_swapChainImageFormat, depthTexture, BufferHelper::FindDepthFormat(m_app), m_renderPass)});
+
+            auto texRt = new GFXVulkanRenderTarget(tex2d.get(), GFXRenderTargetType::Color);
+
+            m_swapRenderTarget.push_back(std::unique_ptr<GFXVulkanRenderTarget>(texRt));
+
             m_swapTex.push_back(std::move(tex2d));
         }
 
+        m_renderPass = std::shared_ptr<GFXVulkanRenderPass>{ new GFXVulkanRenderPass(m_app, { m_swapRenderTarget[0].get(), m_depthRenderTarget.get() }) };
 
+        for (size_t i = 0; i < m_swapChainImages.size(); i++)
+        {
+            m_framebuffer.push_back(std::unique_ptr<GFXVulkanFrameBufferObject>{ new GFXVulkanFrameBufferObject(m_app, { m_swapRenderTarget[i].get() , m_depthRenderTarget.get() }, m_renderPass) });
+        }
     }
 
     void GFXVulkanViewport::TermSwapChain()
     {
-        m_renderTargets.clear();
+        m_framebuffer.clear();
+        m_swapRenderTarget.clear();
         m_swapTex.clear();
 
+        m_depthRenderTarget.reset();
         m_depthTex.reset();
 
         for (size_t i = 0; i < m_swapChainImageViews.size(); i++)
@@ -306,8 +316,8 @@ namespace gfx
         return result;
     }
 
-    GFXRenderTarget* gfx::GFXVulkanViewport::GetRenderTarget()
+    GFXFrameBufferObject* gfx::GFXVulkanViewport::GetFrameBufferObject()
     {
-        return m_renderTargets[m_imageIndex].get();
+        return m_framebuffer[m_imageIndex].get();
     }
 }

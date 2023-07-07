@@ -3,7 +3,7 @@
 #include <vector>
 #include <gfx/GFXCommandBuffer.h>
 #include <gfx/GFXRenderTarget.h>
-#include "GFXVulkanRenderTarget.h"
+#include "GFXVulkanFrameBufferObject.h"
 #include "GFXVulkanRenderContext.h"
 
 namespace gfx
@@ -19,7 +19,6 @@ namespace gfx
         void Render(float deltaTime);
 
     protected:
-        void RecordCommandBuffer(GFXCommandBuffer* commandBuffer, const std::vector<GFXRenderTarget*>& renderTarget);
     protected:
         GFXVulkanApplication* m_app;
 

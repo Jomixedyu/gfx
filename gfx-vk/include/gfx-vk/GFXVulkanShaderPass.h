@@ -7,17 +7,17 @@
 namespace gfx
 {
     class GFXVulkanApplication;
-    class GFXVulkanGraphicsPipeline : public GFXShaderPass
+    class GFXVulkanShaderPass : public GFXShaderPass
     {
     public:
-        GFXVulkanGraphicsPipeline(
+        GFXVulkanShaderPass(
             GFXVulkanApplication* app, 
             const GFXShaderPassConfig& config,
             std::shared_ptr<GFXVertexLayoutDescription> vertexLayout,
             std::shared_ptr<GFXShaderModule> shaderModule,
             const std::shared_ptr<GFXDescriptorSetLayout>& descSetLayout,
             GFXVulkanRenderPass* targetPass);
-        virtual ~GFXVulkanGraphicsPipeline() override;
+        virtual ~GFXVulkanShaderPass() override;
 
     public:
         const VkPipelineLayout& GetVkPipelineLayout() const { return m_pipelineLayout; }

@@ -14,7 +14,7 @@ namespace gfx
         ~GFXVulkanCommandBufferPool();
 
     public:
-        VkCommandBuffer GetCommandBuffer();
+        VkCommandBuffer GetVkCommandBuffer();
     public:
         const VkCommandPool& GetVkCommandPool() const { return m_pool; }
 

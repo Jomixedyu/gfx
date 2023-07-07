@@ -3,6 +3,12 @@
 
 namespace gfx
 {
+	enum class GFXRenderTargetType
+	{
+		Color,
+		Depth
+	};
+
 	class GFXRenderTarget : public GFXTexture
 	{
 	public:

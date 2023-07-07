@@ -25,7 +25,7 @@ namespace gfx
         vkDestroyCommandPool(m_app->GetVkDevice(), m_pool, nullptr);
     }
 
-    VkCommandBuffer GFXVulkanCommandBufferPool::GetCommandBuffer()
+    VkCommandBuffer GFXVulkanCommandBufferPool::GetVkCommandBuffer()
     {
         if (m_initial.size() == 0)
         {

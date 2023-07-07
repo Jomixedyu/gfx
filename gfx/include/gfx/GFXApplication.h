@@ -2,11 +2,9 @@
 #include "GFXGlobalConfig.h"
 #include "GFXExtensions.h"
 #include "GFXBuffer.h"
-#include "GFXDescriptor.h"
 #include "GFXCommandBuffer.h"
 #include "GFXTexture2D.h"
 #include "GFXVertexLayoutDescription.h"
-#include "GFXImage.h"
 #include "GFXDescriptorManager.h"
 #include "GFXShaderModule.h"
 #include "GFXShaderPass.h"
@@ -43,14 +41,13 @@ namespace gfx
         const GFXGlobalConfig& GetConfig() const { return m_config; }
         virtual GFXExtensions GetExtensionNames() = 0;
 
-        LoopEvent OnLoop = nullptr;
+        LoopEvent OnPreRender = nullptr;
         LoopEvent OnPostRender = nullptr;
         ExitWindowEvent OnExitWindow = nullptr;
     public:
         virtual GFXBuffer* CreateBuffer(GFXBufferUsage usage, size_t bufferSize) = 0;
         virtual std::shared_ptr<GFXCommandBuffer> CreateCommandBuffer() = 0;
         virtual std::shared_ptr<GFXVertexLayoutDescription> CreateVertexLayoutDescription() = 0;
-        virtual std::shared_ptr<GFXImage> CreateImage() = 0;
         virtual std::shared_ptr<GFXShaderModule> CreateShaderModule(const std::vector<uint8_t>& vert, const std::vector<uint8_t>& frag) = 0;
         virtual GFXDescriptorManager* GetDescriptorManager() = 0;
 

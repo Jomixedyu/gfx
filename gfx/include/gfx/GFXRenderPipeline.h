@@ -1,6 +1,6 @@
 #pragma once
 #include "GFXRenderContext.h"
-#include "GFXRenderTarget.h"
+#include "GFXFrameBufferObject.h"
 #include <vector>
 
 namespace gfx
@@ -8,6 +8,6 @@ namespace gfx
     class GFXRenderPipeline
     {
     public:
-        virtual void OnRender(GFXRenderContext* context, const std::vector<GFXRenderTarget*>& renderTargets) = 0;
+        virtual void OnRender(GFXRenderContext* context, const std::vector<GFXFrameBufferObject*>& renderTargets) = 0;
     };
 }

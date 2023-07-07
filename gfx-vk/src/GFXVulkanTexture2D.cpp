@@ -180,7 +180,7 @@ namespace gfx
             auto loaded = stbi_load_from_memory(fileData, length, &x, &y, &channel, 4);
             channel = 4;
             auto len = x * y * 4;
-            buffer.assign(len, 0);
+            buffer.resize(len);
             memcpy(buffer.data(), loaded, len);
             stbi_image_free(loaded);
         }

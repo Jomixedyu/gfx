@@ -34,7 +34,6 @@ namespace gfx
         virtual GFXBuffer* CreateBuffer(GFXBufferUsage usage, size_t bufferSize) override;
         virtual std::shared_ptr<GFXCommandBuffer> CreateCommandBuffer() override;
         virtual std::shared_ptr<GFXVertexLayoutDescription> CreateVertexLayoutDescription() override;
-        virtual std::shared_ptr<GFXImage> CreateImage() override;
         virtual std::shared_ptr<GFXShaderModule> CreateShaderModule(const std::vector<uint8_t>& vert, const std::vector<uint8_t>& frag) override;
         virtual std::shared_ptr<GFXShaderPass> CreateGraphicsPipeline(
             const GFXShaderPassConfig& config,

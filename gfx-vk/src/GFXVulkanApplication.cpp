@@ -10,7 +10,7 @@
 #include "GFXVulkanTexture2D.h"
 #include "GFXVulkanDescriptorManager.h"
 #include "GFXVulkanShaderModule.h"
-#include "GFXVulkanGraphicsPipeline.h"
+#include "GFXVulkanShaderPass.h"
 #include "GFXVulkanRenderer.h"
 #include "GFXVulkanRenderPass.h"
 #include "GFXVulkanViewport.h"
@@ -377,7 +377,7 @@ namespace gfx
         m_descriptorManager = new GFXVulkanDescriptorManager(this);
         // viewport
         m_viewport = new GFXVulkanViewport(this, m_window);
-        //// renderer
+        // renderer
         m_renderer = new GFXVulkanRenderer(this);
     }
 
@@ -407,9 +407,9 @@ namespace gfx
 
             glfwPollEvents();
 
-            if (OnLoop)
+            if (OnPreRender)
             {
-                OnLoop(deltaTime);
+                OnPreRender(deltaTime);
             }
             TickRender(deltaTime);
             if (OnPostRender)
@@ -471,10 +471,6 @@ namespace gfx
     {
         return std::shared_ptr<GFXVertexLayoutDescription>(new GFXVulkanVertexLayoutDescription());
     }
-    std::shared_ptr<GFXImage> GFXVulkanApplication::CreateImage()
-    {
-        return std::shared_ptr<GFXImage>();
-    }
 
     std::shared_ptr<GFXTexture2D> gfx::GFXVulkanApplication::CreateTexture2DFromMemory(
         const uint8_t* data, int32_t length, const GFXSamplerConfig& samplerConfig, bool enableReadWrite, GFXTextureFormat format)
@@ -495,7 +491,7 @@ namespace gfx
         GFXRenderPassLayout* renderPass)
     {
         auto vkRenderPass = static_cast<GFXVulkanRenderPass*>(renderPass);
-        auto vkPipeline = new GFXVulkanGraphicsPipeline(this, config, vertexLayout, shaderModule, descSetLayout, vkRenderPass);
+        auto vkPipeline = new GFXVulkanShaderPass(this, config, vertexLayout, shaderModule, descSetLayout, vkRenderPass);
         return std::shared_ptr<GFXShaderPass>(vkPipeline);
     }
 

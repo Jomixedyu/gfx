@@ -64,7 +64,7 @@ namespace gfx
         const VkDescriptorSet& GetVkDescriptorSet() const { return m_descriptorSet; }
     protected:
         GFXVulkanDescriptorPool* m_pool;
-        std::vector<GFXVulkanDescriptor*> m_descriptors;
+        std::vector<std::unique_ptr<GFXVulkanDescriptor>> m_descriptors;
         VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
         GFXVulkanDescriptorSetLayout* m_setlayout;
     };

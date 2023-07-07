@@ -12,6 +12,7 @@ float4 TransformMVP(in float3 position)
     return mul(MatrixBufferObject.ProjectionMatrix, mul(MatrixBufferObject.ViewMatrix, mul(MatrixBufferObject.ModelMatrix, float4(position, 1.0))));
 }
 
+
 InPixelAssembly main(InVertexAssembly a2v)
 {
     InPixelAssembly v2f = (InPixelAssembly) 0;

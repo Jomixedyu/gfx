@@ -1,4 +1,4 @@
-#include <gfx-vk/GFXVulkanGraphicsPipeline.h>
+#include <gfx-vk/GFXVulkanShaderPass.h>
 #include <gfx-vk/GFXVulkanApplication.h>
 #include <gfx-vk/GFXVulkanVertexLayoutDescription.h>
 #include <gfx-vk/GFXVulkanDescriptorSet.h>
@@ -9,7 +9,7 @@
 namespace gfx
 {
 
-    GFXVulkanGraphicsPipeline::GFXVulkanGraphicsPipeline(
+    GFXVulkanShaderPass::GFXVulkanShaderPass(
         GFXVulkanApplication* app,
         const GFXShaderPassConfig& config,
         std::shared_ptr<GFXVertexLayoutDescription> vertexLayout,
@@ -135,7 +135,7 @@ namespace gfx
 
     }
 
-    GFXVulkanGraphicsPipeline::~GFXVulkanGraphicsPipeline()
+    GFXVulkanShaderPass::~GFXVulkanShaderPass()
     {
         vkDestroyPipeline(m_app->GetVkDevice(), m_graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(m_app->GetVkDevice(), m_pipelineLayout, nullptr);

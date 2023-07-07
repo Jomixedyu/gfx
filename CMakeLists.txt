@@ -12,7 +12,7 @@ add_subdirectory(gfx-vk)
 
 aux_source_directory(./ DIR_SRCS)
 
-file(GLOB_RECURSE ImGuiDIR_SRCS "imgui/*.h" "imgui/*.h")
+file(GLOB_RECURSE ImGuiDIR_SRCS "imgui/*.h" "imgui/*.cpp")
 
 add_executable (${PROJECT_NAME} ${DIR_SRCS} ${ImGuiDIR_SRCS} "gfx-vk/GFXThirdParty/stb_image.h")
 

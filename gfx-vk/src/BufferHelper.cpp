@@ -1,6 +1,5 @@
 #include <gfx-vk/BufferHelper.h>
 #include <gfx-vk/GFXVulkanCommandBuffer.h>
-#include <gfx/GFXCommandBufferScope.h>
 #include "GFXVulkanCommandBufferPool.h"
 
 #include <stdexcept>
@@ -137,15 +136,14 @@ namespace gfx
         vkBindImageMemory(app->GetVkDevice(), image, imageMemory, 0);
     }
 
-    static VkCommandBuffer _GetVkCommandBuffer(const gfx::GFXCommandBufferScope& scope)
+    static VkCommandBuffer _GetVkCommandBuffer(const gfx::GFXVulkanCommandBufferScope& scope)
     {
         return static_cast<gfx::GFXVulkanCommandBuffer*>(scope.operator->())->GetVkCommandBuffer();
     }
 
     void BufferHelper::TransitionImageLayout(GFXVulkanApplication* app, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
-
     {
-        gfx::GFXCommandBufferScope commandBuffer(app);
+        GFXVulkanCommandBufferScope commandBuffer(app);
 
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -219,7 +217,7 @@ namespace gfx
 
     void BufferHelper::CopyBufferToImage(GFXVulkanApplication* app, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
     {
-        gfx::GFXCommandBufferScope commandBuffer(app);
+        gfx::GFXVulkanCommandBufferScope commandBuffer(app);
 
         VkBufferImageCopy region{};
         region.bufferOffset = 0;
