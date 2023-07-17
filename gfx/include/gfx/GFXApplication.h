@@ -33,6 +33,10 @@ namespace gfx
         //using LoopEvent = void(*)(GFXApplication*, float);
         using ExitWindowEvent = bool(*)();
     public:
+        GFXApplication(const GFXApplication&) = delete;
+        GFXApplication(GFXApplication&&) = delete;
+
+
         virtual void Initialize() {}
         virtual void ExecLoop() {}
         virtual void RequestStop() {}
@@ -40,6 +44,11 @@ namespace gfx
 
         const GFXGlobalConfig& GetConfig() const { return m_config; }
         virtual GFXExtensions GetExtensionNames() = 0;
+        virtual int32_t GetApiType() const = 0;
+        virtual const char* GetApiLevelName() const = 0;
+
+        virtual void SetRenderPipeline(GFXRenderPipeline* pipeline) = 0;
+        virtual GFXRenderPipeline* GetRenderPipeline() const = 0;
 
         LoopEvent OnPreRender = nullptr;
         LoopEvent OnPostRender = nullptr;
@@ -63,6 +72,16 @@ namespace gfx
             const GFXSamplerConfig& samplerConfig,
             bool enableReadWrite = false, 
             GFXTextureFormat format = GFXTextureFormat::R8G8B8A8_SRGB) = 0;
+
+        virtual std::shared_ptr<GFXRenderTarget> CreateRenderTarget(
+            int32_t width, int32_t height, GFXRenderTargetType type,
+            GFXTextureFormat format, const GFXSamplerConfig& samplerCfg) = 0;
+
+        virtual std::shared_ptr<GFXFrameBufferObject> CreateFrameBufferObject(
+            const std::vector<GFXRenderTarget*>& renderTargets,
+            const std::shared_ptr<GFXRenderPassLayout>& renderPassLayout) = 0;
+
+        virtual std::shared_ptr<GFXRenderPassLayout> CreateRenderPassLayout(const std::vector<GFXRenderTarget*>& renderTargets) = 0;
 
         virtual intptr_t GetWindowHandle() = 0;
 

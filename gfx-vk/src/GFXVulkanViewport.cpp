@@ -52,7 +52,7 @@ namespace gfx
         {
             for (const auto& availableFormat : availableFormats)
             {
-                if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+                if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
                 {
                     return availableFormat;
                 }
@@ -307,6 +307,17 @@ namespace gfx
         TermSwapChain();
 
         InitSwapChain();
+    }
+
+    void GFXVulkanViewport::SetSize(int width, int height)
+    {
+        glfwSetWindowSize(m_window, width, height);
+    }
+
+    void GFXVulkanViewport::GetSize(int* width, int* height) const
+    {
+        *width = m_swapChainExtent.width;
+        *height = m_swapChainExtent.height;
     }
     VkResult GFXVulkanViewport::AcquireNextImage(uint32_t* outIndex)
     {

@@ -97,7 +97,6 @@ namespace gfx
     }
 
     void BufferHelper::CreateImage(GFXVulkanApplication* app, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
-
     {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -132,7 +131,7 @@ namespace gfx
         {
             throw std::runtime_error("failed to allocate image memory!");
         }
-        //图像关联内存
+
         vkBindImageMemory(app->GetVkDevice(), image, imageMemory, 0);
     }
 
@@ -183,6 +182,14 @@ namespace gfx
 
             sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+        {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         }
         else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
         {
@@ -287,7 +294,7 @@ namespace gfx
         samplerInfo.anisotropyEnable = VK_TRUE;
         samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
         samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-        samplerInfo.unnormalizedCoordinates = VK_FALSE; //采样范围0-1
+        samplerInfo.unnormalizedCoordinates = VK_FALSE; // range 0 ~ 1
 
         samplerInfo.compareEnable = VK_FALSE;
         samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
@@ -333,5 +340,45 @@ namespace gfx
             VK_IMAGE_TILING_OPTIMAL,
             VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
         );
+    }
+    VkFilter BufferHelper::GetVkFilter(GFXSamplerFilter filter)
+    {
+        switch (filter)
+        {
+        case gfx::GFXSamplerFilter::Nearest: return VkFilter::VK_FILTER_NEAREST;
+        case gfx::GFXSamplerFilter::Linear: return VkFilter::VK_FILTER_LINEAR;
+        case gfx::GFXSamplerFilter::Cubic: return VkFilter::VK_FILTER_CUBIC_IMG;
+        default:
+            assert(false);
+            break;
+        }
+        return {};
+    }
+    VkSamplerAddressMode BufferHelper::GetVkAddressMode(GFXSamplerAddressMode mode)
+    {
+        switch (mode)
+        {
+        case gfx::GFXSamplerAddressMode::Repeat: return VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        case gfx::GFXSamplerAddressMode::MirroredRepeat: return VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        case gfx::GFXSamplerAddressMode::ClampToEdge: return VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        default:
+            assert(false);
+            break;
+        }
+        return {};
+    }
+    VkFormat BufferHelper::GetVkFormat(GFXTextureFormat format)
+    {
+        switch (format)
+        {
+        case gfx::GFXTextureFormat::R8: return VK_FORMAT_R8_UNORM;
+        case gfx::GFXTextureFormat::R8G8B8: return VK_FORMAT_R8G8B8_UNORM;
+        case gfx::GFXTextureFormat::R8G8B8A8: return VK_FORMAT_R8G8B8A8_UNORM;
+        case gfx::GFXTextureFormat::R8G8B8A8_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
+        default:
+            assert(false);
+            break;
+        }
+        return {};
     }
 }
