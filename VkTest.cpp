@@ -7,14 +7,10 @@
 #include <gfx-vk/GFXThirdParty/glfw/include/GLFW/glfw3.h>
 #include <gfx-vk/GFXThirdParty/glfw/include/GLFW/glfw3native.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 #undef max
 #undef min
 
-#include <gfx/GFXDefined.h>
-#include <gfx/GFXShaderModule.h>
+#include <gfx/GFXGpuProgram.h>
 #include <gfx/GFXShaderPass.h>
 #include <iostream>
 #include <fstream>
@@ -46,7 +42,7 @@
 #include <gfx/GFXRenderPipeline.h>
 #include <chrono>
 #include <gfx-vk/BufferHelper.h>
-#include <gfx-vk/GFXVulkanShaderModule.h>
+#include <gfx-vk/GFXVulkanGpuProgram.h>
 #include "VertexData.h"
 #include "IOHelper.hpp"
 #include <gfx/GFXDescriptorSet.h>
@@ -59,40 +55,50 @@ using namespace gfx;
 class HDRenderPipeline : public GFXRenderPipeline
 {
 public:
-    GFXShaderPass* Shaderpass;
+    std::shared_ptr<GFXShaderPass> Shaderpass;
     std::vector<GFXBuffer*> VertBuffers;
     GFXBuffer* IndexBuffer;
     GFXVulkanDescriptorSet* DescriptorSet;
 
+
     virtual void OnRender(GFXRenderContext* context, const std::vector<GFXFrameBufferObject*>& renderTargets) override
     {
-        auto rt = static_cast<GFXVulkanFrameBufferObject*>(renderTargets[0]);
-
         auto& buffer = static_cast<GFXVulkanCommandBuffer&>(context->AddCommandBuffer());
+        auto pipelineMgr = context->GetApplication()->GetGraphicsPipelineManager();
+
         buffer.Begin();
-        buffer.SetFrameBuffer(rt);
-        buffer.CmdClearColor(0.1, 0.16, 0.16, 1);
-        buffer.CmdBeginFrameBuffer();
-        buffer.CmdSetViewport(0, 0, rt->GetWidth(), rt->GetHeight());
-        //being render
-        buffer.CmdBindShaderPass(Shaderpass);
-        buffer.CmdBindVertexBuffers(VertBuffers);
-        buffer.CmdBindIndexBuffer(IndexBuffer);
-        buffer.CmdBindDescriptorSets(DescriptorSet, Shaderpass);
-        buffer.CmdDrawIndexed(IndexBuffer->GetSize() / sizeof(uint16_t));
 
-        ImGui::Render();
-        ImDrawData* draw_data = ImGui::GetDrawData();
-        const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
-        if (!is_minimized)
+        for (auto fbo : renderTargets)
         {
+            buffer.SetFrameBuffer(fbo);
+            buffer.CmdClearColor(0.1, 0.16, 0.16, 1);
+            buffer.CmdBeginFrameBuffer();
+            buffer.CmdSetViewport(0, 0, fbo->GetWidth(), fbo->GetHeight());
+            //being render
 
-            ImGui_ImplVulkan_RenderDrawData(draw_data, buffer.GetVkCommandBuffer());
+            auto pipeline = pipelineMgr->GetGraphicsPipeline(Shaderpass, fbo->GetRenderPassLayout());
+
+            buffer.CmdBindGraphicsPipeline(pipeline.get());
+            buffer.CmdBindVertexBuffers(VertBuffers);
+            buffer.CmdBindIndexBuffer(IndexBuffer);
+            buffer.CmdBindDescriptorSets(DescriptorSet, pipeline.get());
+
+            buffer.CmdDrawIndexed(IndexBuffer->GetSize() / sizeof(uint16_t));
+
+            ImGui::Render();
+            ImDrawData* draw_data = ImGui::GetDrawData();
+            const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
+            if (!is_minimized)
+            {
+
+                ImGui_ImplVulkan_RenderDrawData(draw_data, buffer.GetVkCommandBuffer());
+            }
+
+            //end render
+            buffer.CmdEndFrameBuffer();
+            buffer.SetFrameBuffer(nullptr);
         }
 
-        //end render
-        buffer.CmdEndFrameBuffer();
-        buffer.SetFrameBuffer(nullptr);
         buffer.End();
 
         context->Submit();
@@ -136,18 +142,16 @@ public:
         gfxapp = new gfx::GFXVulkanApplication(config);
         gfxapp->Initialize();
 
-        descriptorSetLayout = std::shared_ptr<gfx::GFXVulkanDescriptorSetLayout>(new gfx::GFXVulkanDescriptorSetLayout(
-            gfxapp,
-            {
-                {uint32_t(0), gfx::GFXDescriptorType::ConstantBuffer, gfx::GFXShaderStage::Vertex},
-                {uint32_t(1), gfx::GFXDescriptorType::CombinedImageSampler, gfx::GFXShaderStage::Fragment}
-            }));
+        descriptorSetLayout = gfxapp->CreateDescriptorSetLayout({
+                {uint32_t(0), gfx::GFXDescriptorType::ConstantBuffer, gfx::GFXShaderStageFlags::Vertex},
+                {uint32_t(1), gfx::GFXDescriptorType::CombinedImageSampler, gfx::GFXShaderStageFlags::Fragment}
+            });
 
         {
             auto vertShaderCode = IOHelper::ReadFile("shader/Lit.vs.spv");
             auto fragShaderCode = IOHelper::ReadFile("shader/Lit.ps.spv");
 
-            auto shaderModule = gfxapp->CreateShaderModule(vertShaderCode, fragShaderCode);
+            auto shaderModule = gfxapp->CreateGpuProgram(vertShaderCode, fragShaderCode);
             gfx::GFXShaderPassConfig cfg;
             {
                 cfg.CullMode = gfx::GFXCullMode::Back;
@@ -155,12 +159,9 @@ public:
                 cfg.DepthWriteEnable = true;
                 cfg.DepthCompareOp = gfx::GFXCompareMode::Less;
             }
-
-            pipeline = std::static_pointer_cast<gfx::GFXVulkanShaderPass>
-                (gfxapp->CreateGraphicsPipeline(cfg, gfx::GetBindingDescription(gfxapp), shaderModule, descriptorSetLayout, gfxapp->GetVulkanViewport()->GetRenderPass()));
-
+            shaderPass = gfxapp->CreateShaderPass(cfg, shaderModule, descriptorSetLayout, gfx::GetBindingDescription(gfxapp));
         }
-
+        
 
         {
             auto texbuf = IOHelper::ReadFile("textures/texture.png");
@@ -198,7 +199,7 @@ public:
 
         srp->VertBuffers = { vertexBuffer };
         srp->IndexBuffer = indexBuffer;
-        srp->Shaderpass = pipeline.get();
+        srp->Shaderpass = shaderPass;
         srp->DescriptorSet = descriptorSets[0].get();
 
         
@@ -293,10 +294,10 @@ private:
     gfx::GFXBuffer* vertexBuffer;
     gfx::GFXVulkanBuffer* indexBuffer;
 
-    std::shared_ptr<gfx::GFXVulkanDescriptorSetLayout> descriptorSetLayout;
+    std::shared_ptr<gfx::GFXDescriptorSetLayout> descriptorSetLayout;
     std::vector<std::shared_ptr<gfx::GFXVulkanDescriptorSet>> descriptorSets;
 
-    std::shared_ptr<gfx::GFXVulkanShaderPass> pipeline;
+    std::shared_ptr<gfx::GFXShaderPass> shaderPass;
 
     gfx::GFXVulkanBuffer* uniformBuffers;
 
@@ -308,7 +309,7 @@ private:
         delete uniformBuffers;
 
         textureImage.reset();
-        pipeline.reset();
+        shaderPass.reset();
 
         descriptorSetLayout.reset();
         descriptorSets.clear();

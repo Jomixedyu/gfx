@@ -9,7 +9,7 @@ OutPixelAssembly main(InPixelAssembly v2f)
 {
     OutPixelAssembly p2o;
     p2o.Color = texture1.Sample(state, v2f.TexCoord0);
-   // p2o.Color = float4(v2f.TexCoord0, 0, 0);
-    
+    //p2o.Color = float4(v2f.TexCoord0, 0, 0);
+
     return p2o;
 }

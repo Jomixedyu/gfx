@@ -1,3 +1,9 @@
 {
-	"CullMode" : "Back"
+	"CullMode" : "Back",
+	"Layout" : [
+		{
+			"Name": "",
+			"Type": "Sampler2D",
+		}
+	]
 }

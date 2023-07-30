@@ -24,5 +24,6 @@ InPixelAssembly main(InVertexAssembly a2v)
     v2f.Color = a2v.Color;
 
     v2f.Position = TransformMVP(a2v.Position);
+    //v2f.Position = float4(a2v.Position, 1);
     return v2f;
 }
