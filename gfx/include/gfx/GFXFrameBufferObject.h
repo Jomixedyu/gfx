@@ -1,6 +1,7 @@
 #pragma once
 #include "GFXInclude.h"
 #include "GFXRenderTarget.h"
+#include "GFXRenderPass.h"
 
 namespace gfx
 {
